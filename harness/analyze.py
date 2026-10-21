@@ -53,7 +53,52 @@ def load_episode(d: Path) -> dict | None:
             events = json.loads(dag.read_text()).get("events", [])
         except ValueError:
             events = []
-    return {"id": d.name, "dir": str(d), "result": r, "rows": rows, "events": events}
+    gres = {}
+    gp = d / "trace" / "0000" / "graph_result.json"
+    if gp.exists():
+        try:
+            gres = json.loads(gp.read_text())
+        except ValueError:
+            gres = {}
+    return {"id": d.name, "dir": str(d), "result": r, "rows": rows, "events": events, "graph_result": gres}
+
+
+ROUTE_KEYS = ("route", "outcome", "exit", "status", "result")
+REASON_KEYS = ("reason", "why", "detail", "message", "failure")
+
+
+def node_output(ep: dict, node: str) -> dict:
+    p = Path(ep["dir"]) / "trace" / "0000" / "node_data" / node / "output.json"
+    try:
+        out = json.loads(p.read_text())
+        return out if isinstance(out, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def graph_end(ep: dict, spans: list[dict]) -> dict:
+    """Where the graph ended: the end node, and for a failure the last node that said why (its route and reason)."""
+    g = ep.get("graph_result") or {}
+    err = str(g.get("graph_error", "")) + " " + str((g.get("graph_result") or {}).get("result", ""))
+    end = None
+    import re as _re
+
+    m = _re.search(r"end node '([^']+)' \((\w+)\)", err)
+    if m:
+        end = {"node": m.group(1), "status": m.group(2)}
+    elif "success=True" in err:
+        end = {"node": "done", "status": "success"}
+    last = None
+    for sp in reversed(spans):
+        if "." not in sp["node"]:
+            continue
+        out = node_output(ep, sp["node"])
+        route = next((str(out[k]) for k in ROUTE_KEYS if k in out and isinstance(out[k], (str, bool))), None)
+        if route is not None:
+            reason = next((str(out[k]) for k in REASON_KEYS if out.get(k)), "")
+            last = {"node": sp["node"], "route": route, "reason": reason[:200]}
+            break
+    return {"end": end, "last_route": last}
 
 
 def _wall_to_step(rows: list[dict]):
@@ -172,6 +217,7 @@ def diagnose(ep: dict, tcross: list[dict]) -> dict:
         per.append({"id": tc["id"], "state": "OK" if ok else "FLIPPED", "born_step": step, "born_node": node})
     extra = [x for k, x in enumerate(final_x) if k not in used]
     err_span = next((sp for sp in spans if sp.get("status") in ("error", "unfinished") and "." in sp["node"]), None)
+    ge = graph_end(ep, spans)
     regress = [sp for sp in spans if sp.get("prefix_before") is not None and sp.get("prefix_after") is not None and sp["prefix_after"] < sp["prefix_before"] and "." in sp["node"]]
     if r.get("success"):
         cause = "success"
@@ -179,6 +225,9 @@ def diagnose(ep: dict, tcross: list[dict]) -> dict:
         cause = "crash: " + r["error"].strip().splitlines()[-1][:160]
     elif err_span:
         cause = f"node {err_span['node']} {err_span['status']}" + (f": {err_span.get('error', '')[:160]}" if err_span.get("error") else "")
+    elif ge["end"] and ge["end"]["status"] != "success" and ge["last_route"]:
+        lr = ge["last_route"]
+        cause = f"graph ended at '{ge['end']['node']}' after {lr['node'].split('.')[0]} routed '{lr['route']}'" + (f" ({lr['reason']})" if lr["reason"] else "")
     elif any(p["state"] != "OK" for p in per) or extra:
         cause = "wrong diagram"
     else:
@@ -193,8 +242,9 @@ def diagnose(ep: dict, tcross: list[dict]) -> dict:
         "crossings": per,
         "extra_crossings": len(extra),
         "cause": cause,
-        "error_node": err_span["node"] if err_span else None,
-        "error_calls": bad_calls(ep, err_span["node"]) if err_span else [],
+        "error_node": err_span["node"] if err_span else (ge["last_route"] or {}).get("node"),
+        "graph_end": ge,
+        "error_calls": bad_calls(ep, err_span["node"]) if err_span else (bad_calls(ep, ge["last_route"]["node"]) if ge["last_route"] else []),
         "regressions": [{"node": sp["node"], "from": sp["prefix_before"], "to": sp["prefix_after"]} for sp in regress],
         "spans": [{k: sp.get(k) for k in ("node", "start", "end", "sim_s", "status", "prefix_before", "prefix_after")} for sp in spans],
         "variant": r.get("variant"),
