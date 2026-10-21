@@ -89,9 +89,9 @@ def run_daytona_many(specs: list[tuple[Path, Path]], vs: list, *, max_steps: int
             jid = f"g{g}-{int(time.time()) % 100000:05d}-{rid}"
             cmd = (f'mkdir -p "$GK_JOB_DIR/graph" && tar xzf "$GK_JOB_DIR/graph.tgz" -C "$GK_JOB_DIR/graph" && '
                    + " ".join(shlex.quote(c) for c in ["python", "-m", "knotlab.episode", "--variant", v.to_json(),
-                                                        "--out", f"out/{jid}", "--max-steps", str(max_steps), "--every", "30", "--frames", "15"])
+                                                        "--out", f"/opt/gk/out/{jid}", "--max-steps", str(max_steps), "--every", "30", "--frames", "15"])
                    + ' --graph "$GK_JOB_DIR/graph"')
-            jobs.append(Job(id=jid, cmd=cmd, files={str(tgz): "graph.tgz"}, outputs=[f"out/{jid}"], timeout_s=timeout_s))
+            jobs.append(Job(id=jid, cmd=cmd, files={str(tgz): "graph.tgz"}, outputs=[f"/opt/gk/out/{jid}"], timeout_s=timeout_s))
             where[jid] = (out, rid)
     try:
         fleet_dir = specs[0][1].parent / f"_fleet_{int(time.time())}"
@@ -103,7 +103,7 @@ def run_daytona_many(specs: list[tuple[Path, Path]], vs: list, *, max_steps: int
     rows = []
     for r in res:
         out, rid = where[r.id]
-        src = Path(r.outputs_dir or "") / "out" / r.id
+        src = Path(r.outputs_dir or "") / r.id
         if src.exists():
             if (out / rid).exists():
                 shutil.rmtree(out / rid)
