@@ -38,6 +38,7 @@ def check(graph_dir) -> list[str]:
     return [] if p.returncode == 0 and lines and lines[-1] == "VALID" else (lines or [p.stderr[-500:]])
 
 PROMPTS = ROOT / "harness" / "prompts"
+PROMPT_SUFFIX = ""  # "_simple": the generation prompts that ask for composition of the skill library
 IMAGES = [ROOT / "harness" / "docs" / "img" / "video_storyboard.jpg", ROOT / "harness" / "docs" / "img" / "start_and_target.png"]
 
 
@@ -58,7 +59,7 @@ def generate(run: Path) -> Path:
     (coord / "graph" / "scripts").mkdir(parents=True, exist_ok=True)
     if not (coord / "graph" / "SEGMENTS.md").exists() or check(coord / "graph"):
         log(run, "generation: orchestration agent decomposing the task")
-        r = codex_agent.run("coordinator", coord, (PROMPTS / "coordinator.md").read_text(), images=IMAGES, timeout_s=3600)
+        r = codex_agent.run("coordinator", coord, (PROMPTS / f"coordinator{PROMPT_SUFFIX}.md").read_text(), images=IMAGES, timeout_s=3600)
         log(run, f"  coordinator exit={r['exit']} {r['wall_s']}s")
         probs = check(coord / "graph")
         if probs:
@@ -78,7 +79,7 @@ def generate(run: Path) -> Path:
         if done.exists():
             return {"sg": sg, "exit": 0, "cached": True}
         codex_agent.prepare(ws, None if resumed else coord / "graph")
-        prompt = (PROMPTS / "subgraph.md").read_text().replace("{sg}", sg)
+        prompt = (PROMPTS / f"subgraph{PROMPT_SUFFIX}.md").read_text().replace("{sg}", sg)
         if resumed:
             prompt = ("NOTE: an earlier session on this subgraph was cut off (account usage limit) before it finished. "
                       "`graph/` holds its partial work. Review it critically, complete it, and validate.\n\n" + prompt)
@@ -232,7 +233,10 @@ def main() -> None:
     ap.add_argument("--test-every", type=int, default=3)
     ap.add_argument("--n-test", type=int, default=20)
     ap.add_argument("--generate-only", action="store_true")
+    ap.add_argument("--prompts", default="", help="generation prompt variant, e.g. _simple")
     a = ap.parse_args()
+    global PROMPT_SUFFIX
+    PROMPT_SUFFIX = a.prompts
     run = Path(a.run).resolve()
     run.mkdir(parents=True, exist_ok=True)
     hist_path = run / "history.json"
