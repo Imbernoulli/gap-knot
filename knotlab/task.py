@@ -1,0 +1,228 @@
+"""The double coin knot as a RoboSimStudio task: the board, its pins, the rope, and when it counts as tied.
+
+Real2Sim of youtu.be/dg6XrRY_FzI (Art Sprouts, "How to tie a Double Coin Knot"):
+a foam board with pins, the cord's middle hung on the top pin and its halves
+down the board, a lobe laid round each side pin and the tails woven through.
+Scaled to the YAM pair: a 10 mm cord, the knot 16 cm across, the board in the
+band both hands reach tool-down (bench x -0.25 .. -0.05).
+
+A :class:`Variant` is one instance of the task (Variational Automation): the
+rope's stiffness and friction, where the board and its pins sit, how the rope
+was laid out. ``build(variant)`` registers the assets for it and returns the
+``bench.Env``.
+"""
+
+from __future__ import annotations
+
+import contextlib
+import dataclasses
+import json
+import math
+from dataclasses import dataclass
+
+import numpy as np
+
+from knotlab import diagram, geometry
+
+GRAPH_ROOT_DEFAULT = None
+
+
+@dataclass(frozen=True)
+class Variant:
+    seed: int = 0
+    # The rope.
+    radius: float = 0.005
+    young_modulus: float = 1.0e5  # [Pa]: a soft cord (the knot example's)
+    axial_stiffness: float = 300.0  # [N]
+    mu_cable: float = 0.25  # friction coefficient squared, between strands and at the pads
+    # Where things are, in the bench frame.
+    board_x: float = -0.14  # the knot's centre, bench x [m]
+    board_y: float = 0.0
+    board_yaw: float = 0.0  # [rad]
+    pin_jitter: float = 0.0  # each pin moved up to this far from its nominal place [m]
+    # How the rope starts.
+    splay: float = 0.05  # the bight's width round the top pin [m]
+    drop: float = 0.14  # how far each half runs down before turning out [m]
+    side: float = 0.17  # how far it then runs out sideways before hooking back up the board [m]
+    lay_noise: float = 0.0  # lateral wiggle laid onto the start [m]
+    start_shape: str = "omega"  # "omega": the video's start; "tied": the loose knot itself (to rehearse dressing)
+
+    def to_json(self) -> str:
+        return json.dumps(dataclasses.asdict(self))
+
+    @staticmethod
+    def from_json(text: str) -> "Variant":
+        return Variant(**json.loads(text))
+
+
+NOMINAL = Variant()
+BOARD_THICK = 0.001  # the foam board, drawn only: SuperDex's rope rests on the bench, not on a slab [m]
+PIN_RADIUS, PIN_HEIGHT = 0.0025, 0.030
+
+
+def knot_spec(v: Variant) -> geometry.KnotSpec:
+    return geometry.KnotSpec(radius=v.radius)
+
+
+def _place(v: Variant, board_pts: np.ndarray) -> np.ndarray:
+    """Board-frame points to the bench frame for this variant (knot centre at (board_x, board_y), turned by yaw)."""
+    p = np.asarray(board_pts, dtype=np.float64)
+    bench = geometry.to_bench(p)  # (Y, -X, z)
+    c, s = math.cos(v.board_yaw), math.sin(v.board_yaw)
+    xy = bench[:, :2] @ np.array([[c, s], [-s, c]])
+    out = np.hstack([xy + np.array([v.board_x, v.board_y]), bench[:, 2:3]])
+    return out
+
+
+def layout(v: Variant) -> dict:
+    """Everything this variant places, in the bench frame: rope start nodes, target, pins."""
+    rng = np.random.default_rng(v.seed)
+    spec = knot_spec(v)
+    start = geometry.start(spec, splay=v.splay, drop=v.drop, side=v.side)
+    if v.start_shape == "tied":
+        start = geometry.target(spec)
+    if v.lay_noise > 0:
+        s = diagram.arc_length(start)
+        wiggle = v.lay_noise * np.sin(2 * math.pi * s / rng.uniform(0.3, 0.6) + rng.uniform(0, 2 * math.pi))
+        tangent = np.gradient(start[:, :2], axis=0)
+        tangent /= np.linalg.norm(tangent, axis=1, keepdims=True)
+        normal = np.stack([-tangent[:, 1], tangent[:, 0]], axis=1)
+        far = np.clip((s - 0.1) / 0.2, 0, 1) * np.clip((s[-1] - s - 0.1) / 0.2, 0, 1)  # not near the ends
+        mid = np.abs(s - s[-1] / 2) > 0.12  # leave the bight on its pin
+        start = start.copy()
+        start[:, :2] += (wiggle * far * mid)[:, None] * normal
+    pins = geometry.pins(spec)
+    pins = {k: p + (rng.uniform(-1, 1, 2) * v.pin_jitter if v.pin_jitter else 0.0) for k, p in pins.items()}
+    pin_bench = {k: _place(v, np.array([[*p, 0.0]]))[0] for k, p in pins.items()}
+    return {
+        "start": _place(v, start),
+        "target": _place(v, geometry.target(spec)),
+        "pins": pin_bench,
+        "board_centre": np.array([v.board_x, v.board_y, 0.0]),
+    }
+
+
+TARGET_CODE = diagram.gauss_code(geometry.target(geometry.KnotSpec()))
+
+
+def score(points: np.ndarray, radius: float = 0.005) -> dict:
+    """How far the rope is from the tied knot: its code against the double coin's, and the knot's size."""
+    code = diagram.gauss_code(points)
+    n = diagram.prefix_match(code, TARGET_CODE)
+    exact = code == TARGET_CODE
+    found = diagram.crossings(points)
+    xy = np.array([c.xy for c in found]) if found else np.zeros((0, 2))
+    return {
+        "code": diagram.code_str(code),
+        "crossings": len(found),
+        "prefix": n,
+        "progress": n / len(TARGET_CODE),
+        "tied": bool(exact),
+        "alternating": diagram.is_alternating(code),
+        "knot_extent": float(np.ptp(xy, axis=0).max()) if len(xy) > 1 else 0.0,
+    }
+
+
+_REGISTERED: set[str] = set()
+
+
+def _register_measure() -> None:
+    from robosimstudio.assetlib.semantics.atoms import ArgSpec, AtomSpec, register_atom
+    from robosimstudio.assetlib.semantics.handlers import handler
+
+    if "coin_progress" in _REGISTERED:
+        return
+
+    def coin_progress(positions: np.ndarray) -> float:
+        return score(np.asarray(positions, dtype=np.float64))["progress"]
+
+    with contextlib.suppress(ValueError):
+        register_atom(
+            AtomSpec(
+                name="coin_progress",
+                summary="How much of the double coin knot's Gauss code a rope shows, from its first tail: 1 is tied.",
+                fn=coin_progress,
+                args=(ArgSpec(name="body", substrates=("rod",)),),
+                directions=("check", "observe"),
+                returns=("coin_progress",),
+                provenance="knotlab: the open 3-lead 4-bight Turk's head, eight crossings met alternately over and under.",
+            )
+        )
+
+        @handler("coin_progress", substrates=("rod",), summary="The double coin knot's code matched so far, 0..1.")
+        def _h(positions: np.ndarray) -> dict:
+            return {"coin_progress": coin_progress(positions)}
+
+    _REGISTERED.add("coin_progress")
+
+
+def task_doc(max_steps: int = 6000) -> str:
+    return f"""
+(define (problem double_coin_knot)
+  (:language tie a double coin knot: hang the cord's middle on the top pin, lay a lobe round each side pin, weave the tails over and under, and pull it even)
+  (:staging (:scene bench_075) (:embodiment yam_bimanual) (:physics knot_superdex@v1) (:max-steps {max_steps}))
+  (:fixtures board - knot_board pin_top - knot_pin_top pin_left - knot_pin_left pin_right - knot_pin_right)
+  (:objects rope - knot_rope)
+  (:goal (once (hold-for 1.0 (>= (coin_progress rope) 1.0)))))
+"""
+
+
+CURRENT: dict = {}
+"""The variant the last :func:`build` made, and its layout: what the ``rope.*`` tools report."""
+
+
+def build(v: Variant = NOMINAL, *, max_steps: int = 6000):
+    """Register this variant's assets and return its ``bench.Env``."""
+    import robosimstudio as rss
+    import robosimstudio_bench as bench
+    from robosimstudio.assetlib import register_asset
+    from robosimstudio.domains.rigid import Body
+    from robosimstudio_materials.rod import Rod
+
+    _register_measure()
+    engine = rss.backend("superdex", substeps=2, feedback="off")  # the fingers drive the rope by pose
+    physics = rss.replace(rss.GENERIC, backends=(("rod", engine), *rss.GENERIC.backends))
+    with contextlib.suppress(ValueError):
+        bench.register_arrangement("knot_superdex@v1", physics)
+    lay = layout(v)
+    CURRENT.clear()
+    CURRENT.update(variant=v, layout=lay)
+    bx, by = float(v.board_x), float(v.board_y)
+
+    def reg(record) -> None:
+        # A variant re-registers under the same names: the latest wins.
+        with contextlib.suppress(ValueError):
+            register_asset(record)
+        try:
+            register_asset(record, replace=True)  # type: ignore[call-arg]
+        except TypeError:
+            pass
+
+    board = rss.slab(
+        name="board", half=(0.12, 0.17, BOARD_THICK / 2), at=(bx, by, BOARD_THICK / 2), color=(0.80, 0.82, 0.86)
+    )
+    reg(Body.from_spec(board, name="knot_board"))
+    for name, p in lay["pins"].items():
+        pin = rss.post(
+            name=f"pin_{name}",
+            radius=PIN_RADIUS,
+            half_height=PIN_HEIGHT / 2,
+            at=(float(p[0]), float(p[1]), BOARD_THICK + PIN_HEIGHT / 2),
+            color=(0.10, 0.55, 0.50),
+        )
+        reg(Body.from_spec(pin, name=f"knot_pin_{name}"))
+    rope = rss.rod(
+        name="rope",
+        radius=v.radius,
+        nodes=tuple(map(tuple, lay["start"].tolist())),
+        self_contact=True,
+        young_modulus=v.young_modulus,
+        axial_stiffness=v.axial_stiffness,
+        mu_cable=v.mu_cable,
+        friction_falloff=1.0e-3,
+        contact_penalty=4.0e8,
+        skin_samples="P1Q6",
+        color=(0.85, 0.15, 0.45),
+    )
+    reg(Rod.from_spec(rope, name="knot_rope"))
+    return bench.Env(bench.task(task_doc(max_steps)))

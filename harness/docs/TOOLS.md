@@ -1,0 +1,54 @@
+# Tool catalog
+
+Every tool a graph node or a script's `ctx.tool(name, **kwargs)` can call on this task (privileged sim run).
+Positions are WORLD frame [m]; the bench work-surface origin is world (0.6, 0, 0.75); arm_id 0 = left, 1 = right.
+
+- `motion.describe_planner` — What this robot's planner is, and what it was measured against.
+- `motion.get_robot_collision_spheres` — Get live robot-model collision spheres for RGB-D self-removal.
+- `motion.plan_joint` — Plan an eased joint-space move to a pose, and say how near it got.
+- `motion.plan_linear` — Plan a straight line to a pose, holding the axes the move is not along.
+- `motion.plan_support_disengagement` — Plan a short grasp-preserving move away from expected support contact.
+- `robot.close_gripper` — Close the gripper and let physics settle.
+- `robot.describe_arm` — The arm's joints, home posture, tool-centre point and solver.
+- `robot.describe_gripper` — The hand's geometry: span, axes, pads, housing.
+- `robot.describe_workspace` — Derived heights and clearances for this robot in this cell.
+- `robot.execute_trajectory` — Execute a joint trajectory waypoint-by-waypoint.
+- `robot.forward_kinematics` — Tool-centre poses for hypothetical arm joint vectors, and the arm's current joints.
+- `robot.get_camera_pose` — Get one camera's world pose by name.
+- `robot.get_ee_pose` — Get the end-effector pose in world frame.
+- `robot.get_gripper` — Get the gripper open fraction (0 closed, 1 open).
+- `robot.get_gripper_pose` — Get the gripper (end-effector) pose in world frame.
+- `robot.get_observation` — Capture the current observation: all cameras + arm states.
+- `robot.go_home` — Move all arms to the home joint configuration.
+- `robot.go_to_pose` — Move the end-effector to a world-frame pose via IK.
+- `robot.go_to_pose_cartesian` — Move the end-effector along a straight Cartesian line.
+- `robot.grasp_frame` — A grasp orientation built from this hand's measured axes.
+- `robot.instruction` — What this episode asked for, as language.
+- `robot.move_cartesian_until_contact` — Move straight toward a pose and stop when the pose is reached or proprioceptive progress indicates contact.
+- `robot.move_to_joints` — Move the arm to a joint configuration, blocking until converged.
+- `robot.open_gripper` — Open the gripper and let physics settle.
+- `robot.set_grip` — Drive the jaws to a width, an object's width, or a named preset.
+- `robot.solve_ik` — Solve IK for a world-frame pose; returns a joint configuration.
+- `robot.stream_dual` — Advance several arms along their own dense joint trajectories together, in lockstep.
+- `robot.wait_steps` — Hold position while the scene runs on for a number of steps.
+- `rope.layout` — The jig and the plan: the pins (world), and where each node of the rope lies in the tied knot (world).
+- `rope.point` — Where the rope is ``s`` metres from its first end now, and its heading there (deg, world xy).
+- `rope.state` — The rope now: its nodes (world), arc length, the knot diagram it lies in, and how much of the double coin it is.
+- `sim.attach` — Seize a deformable's declared feature at one hand and carry it.
+- `sim.check_grasp` — Whether an arm is actually holding one object right now.
+- `sim.check_success` — What the task's evaluator says right now.
+- `sim.clearance` — How close two things are [m] -- now, or at a joint configuration the arm is not in.
+- `sim.detach` — Let a held deformable go, at one hand or at every hand.
+- `sim.get_collision_world` — Exact simulator collider triangles, excluding the robot and selected object categories.
+- `sim.get_object_bounds` — One object's world axis-aligned bounds, as it lies now.
+- `sim.get_object_obb` — One object's oriented bounding box and the grasp it implies.
+- `sim.get_object_pose` — One object's ground-truth world pose (position + wxyz quaternion).
+- `sim.get_particle_state` — A deformable's summary: centroid, height band, footprint.
+- `sim.get_region_obb` — One goal region as an oriented bounding box, for aiming a place.
+- `sim.get_rgbd` — The most recent camera frame: rgb, depth and intrinsics.
+- `sim.get_states` — Every state an entity publishes, with how observable each one is.
+- `sim.grasp_candidates` — Antipodal grasps found by searching an object's mesh, best first.
+- `sim.list_objects` — Every manipulable object in the scene, with its category.
+- `sim.list_regions` — Every goal region, with its world centre.
+- `sim.list_relations` — What can be asked about these things: the applicable relations, by family.
+- `sim.query` — Ask one relation, or a whole family of them, about named things right now.

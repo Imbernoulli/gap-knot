@@ -1,0 +1,9 @@
+third_party/
+video/*.mp4
+video/*.part
+video/frames/
+runs/
+__pycache__/
+*.pyc
+.venv/
+fleet/state/

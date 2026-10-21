@@ -1,0 +1,118 @@
+{
+ "version": 3,
+ "meta": {
+  "name": "probe_pinch",
+  "description": "Pinch the rope at one point with the right hand, carry that point 60 mm, set it down."
+ },
+ "nodes": {
+  "probe": {
+   "type": "subgraph",
+   "ref": "probe_sg"
+  },
+  "done": {
+   "type": "end",
+   "status": "success"
+  },
+  "abort": {
+   "type": "end",
+   "status": "failure"
+  }
+ },
+ "edges": [
+  [
+   "START",
+   "probe"
+  ]
+ ],
+ "conditional_edges": {
+  "probe": {
+   "router_field": "exit",
+   "mapping": {
+    "ok": "done",
+    "failed": "abort"
+   }
+  }
+ },
+ "subgraphs": {
+  "probe_sg": {
+   "skill": "generic",
+   "inputs": {},
+   "outputs": {},
+   "nodes": {
+    "arms": {
+     "type": "tool",
+     "tool": "robot.describe_arm",
+     "inputs": {
+      "arm_id": 0
+     }
+    },
+    "carry": {
+     "type": "script",
+     "script": "scripts/carry.py",
+     "inputs": {
+      "arms": {
+       "$ref": "arms.arms"
+      },
+      "grip": {
+       "$ref": "grip"
+      },
+      "ws": {
+       "$ref": "ws"
+      }
+     }
+    },
+    "ok": {
+     "type": "noop"
+    },
+    "grip": {
+     "type": "tool",
+     "tool": "robot.describe_gripper",
+     "inputs": {
+      "arm_id": 1
+     }
+    },
+    "ws": {
+     "type": "tool",
+     "tool": "robot.describe_workspace",
+     "inputs": {
+      "arm_id": 1
+     }
+    }
+   },
+   "edges": [
+    [
+     "START",
+     "arms"
+    ],
+    [
+     "arms",
+     "grip"
+    ],
+    [
+     "grip",
+     "ws"
+    ],
+    [
+     "ws",
+     "carry"
+    ],
+    [
+     "carry",
+     "ok"
+    ],
+    [
+     "ok",
+     "END"
+    ]
+   ],
+   "conditional_edges": {},
+   "exit": {
+    "router_field": null,
+    "success_values": [
+     "ok"
+    ]
+   },
+   "on_error": "failed"
+  }
+ }
+}
