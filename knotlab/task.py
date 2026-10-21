@@ -59,7 +59,7 @@ class Variant:
 
 NOMINAL = Variant()
 BOARD_THICK = 0.001  # the foam board, drawn only: SuperDex's rope rests on the bench, not on a slab [m]
-PIN_RADIUS, PIN_HEIGHT = 0.0025, 0.030
+PIN_RADIUS, PIN_HEIGHT = 0.0025, 0.050  # the video's pins stand ~5 cord diameters; at 30 mm a cord carried at 35 mm slid over one
 
 
 def knot_spec(v: Variant) -> geometry.KnotSpec:

@@ -34,6 +34,7 @@ def run(graph: str, variant_json: str, out: str, *, max_steps: int = 6000, every
     events: list[dict] = []
     timeline = open(out_dir / "timeline.jsonl", "w")
     snaps: list[np.ndarray] = []
+    hands: list[list[float]] = []  # per saved frame: step, then each arm's TCP x, y, z and jaw width
 
     from knotlab import diagram
 
@@ -67,6 +68,14 @@ def run(graph: str, variant_json: str, out: str, *, max_steps: int = 6000, every
             timeline.flush()
         if frames and step % frames == 0:
             snaps.append(np.asarray(env["rope"].particle_q, dtype=np.float32).copy())
+            row = [float(step)]
+            for arm in ("left", "right"):
+                try:
+                    p, _ = env.arm(arm).ee_pose(env.state)
+                    row += [float(p[0]), float(p[1]), float(p[2]), float(env.gripper(arm).width(env.state))]
+                except Exception:
+                    row += [float("nan")] * 4
+            hands.append(row)
 
     env.add_step_observer(observe)
     error = ""
@@ -95,7 +104,8 @@ def run(graph: str, variant_json: str, out: str, *, max_steps: int = 6000, every
     }
     (out_dir / "result.json").write_text(json.dumps(summary, indent=1))
     if snaps:
-        np.save(out_dir / "rope_frames.npy", np.stack(snaps))
+        np.save(out_dir / "rope_frames.npy", np.stack(snaps).astype(np.float32))
+        np.save(out_dir / "hand_frames.npy", np.asarray(hands, dtype=np.float32))
     timeline.close()
     try:
         policy.close()

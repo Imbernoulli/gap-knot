@@ -178,9 +178,15 @@ def focuses(stats: dict, report: dict, k: int) -> list[str]:
     return (uniq + ["a fresh hypothesis for the most common failure, different from what HISTORY.md tried"] * k)[:k]
 
 
-def evidence(src: Path, dst: Path, diags: list[dict], max_eps: int = 4) -> None:
+def evidence(src: Path, dst: Path, diags: list[dict], max_eps: int = 4) -> list[Path]:
+    """Copy a few episodes' traces for a refiner, and draw them; returns the pictures to attach."""
+    import subprocess
+
     dst.mkdir(parents=True, exist_ok=True)
-    fails = [d for d in diags if not d["success"]][: max_eps - 1] + [d for d in diags if d["success"]][:1]
+    # The furthest-along failures teach most; one success, if any, shows what right looks like.
+    fails = sorted([d for d in diags if not d["success"]], key=lambda d: -(d.get("prefix") or 0))[: max_eps - 1]
+    fails += [d for d in diags if d["success"]][:1]
+    pictures = []
     for d in fails:
         e = src / d["id"]
         if not e.exists():
@@ -193,6 +199,16 @@ def evidence(src: Path, dst: Path, diags: list[dict], max_eps: int = 4) -> None:
         nd = e / "trace" / "0000" / "node_data"
         if nd.exists():
             shutil.copytree(nd, out / "node_data", dirs_exist_ok=True, ignore=shutil.ignore_patterns("assets", "*.npy", "*.png"))
+        if (e / "rope_frames.npy").exists():
+            if not (e / "keys.png").exists():
+                subprocess.run([sys.executable, str(ROOT / "tools" / "render_episode.py"), str(e), "--keys", "12"],
+                               capture_output=True, timeout=600)
+            for pic in ("keys.png", "final.png"):
+                if (e / pic).exists():
+                    shutil.copy2(e / pic, out / pic)
+            if (out / "keys.png").exists():
+                pictures.append(out / "keys.png")
+    return pictures
 
 
 def history_md(hist: list[dict]) -> str:
@@ -261,9 +277,9 @@ def main() -> None:
                 ws = codex_agent.prepare(cd / "ws", best)
                 shutil.copy2(itd / "incumbent" / "REPORT.md", ws / "docs" / "REPORT.md")
                 shutil.copy2(run / "HISTORY.md", ws / "docs" / "HISTORY.md")
-                evidence(itd / "incumbent", ws / "evidence", rep["episodes"])
+                pics = evidence(itd / "incumbent", ws / "evidence", rep["episodes"])
                 prompt = (PROMPTS / "refiner.md").read_text().replace("{n}", str(len(vs))).replace("{focus}", fs[k])
-                r = codex_agent.run("refiner", ws, prompt, timeout_s=3600)
+                r = codex_agent.run("refiner", ws, prompt, images=pics[:3], timeout_s=3600)
                 probs = check(ws / "graph")
                 changes = (ws / "graph" / "CHANGES.md").read_text() if (ws / "graph" / "CHANGES.md").exists() else ""
                 return {"name": name, "focus": fs[k], "exit": r["exit"], "wall_s": r["wall_s"], "graph": str(ws / "graph"),

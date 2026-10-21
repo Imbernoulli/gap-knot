@@ -2,7 +2,7 @@ You are a REFINER agent in a Graph-as-Policy (GaP) self-learning loop. The incum
 
 Evidence:
 - `docs/REPORT.md` — the rehearsal report: success rate and cycle time; why episodes failed; which of the 8 target crossings came out FLIPPED (wrong over/under) or MISSING and which node made them; per-node sim time and where episodes died; per-episode node timelines with the rope's Gauss-code prefix before→after each node.
-- `evidence/<episode>/` — raw traces of some failing (and one successful, if any) episodes: `node_data/<node>/calls/*/{{request,response}}.json` are every tool call with its answer; `timeline.jsonl` is the rope's code every 0.5 s.
+- `evidence/<episode>/` — raw traces of some failing (and one successful, if any) episodes: `node_data/<node>/calls/*/{request,response}.json` are every tool call with its answer; `timeline.jsonl` is the rope's code every 0.5 s; `keys.png` (attached) shows the rope from above at 12 moments (target as a white ghost, pins green, hands as squares with their height) and `final.png` the end beside the target.
 - `docs/HISTORY.md` — earlier iterations: what was changed, the hypothesis, and the measured effect. Don't repeat an idea that measured worse unless you say why it will work now.
 - Background: `docs/TASK.md`, `docs/TOOLS.md`, `docs/skills/rope/SKILL.md`, `docs/gap/`.
 
