@@ -79,6 +79,7 @@ measurements); the scripts here are thin wrappers that route on `outcome`.
 | `thread_end` | `thread_end(ctx, arm_id, helper_arm, end_first, lift_s, through_xy, beyond_xy, grasp_back=0.05, gap=0.012, margin=0.018, lift=0.06)` | The UNDER crossing (see below). `ok` iff the strand reads over the threaded cord afterwards. |
 | `pull` | `pull(ctx, arm_ids=(0,1), s_left, s_right, direction_left, direction_right, distance=0.06, step=0.01, height=0.03)` | Both hands take the tails and draw them apart 10 mm at a time, the knot's code read after each; stops on a progress drop. `tightened` = how much the crossings' extent shrank. |
 | `retreat` / `home` | `retreat(ctx, arm_id)`, `home(ctx, arm_id)` | Open and rise / back to the arm's home posture. |
+| `lobe_metrics` | `lobe_metrics(nodes, layout, half)` | A half's lobe against the target (see "Laying a lobe" below): `winding`, `err_median`/`err_max`, crossings each `ok`/`flipped`/`extra`, `consistent`, `ok`. `crossings_consistent(found, target, tol=0.10)` is the crossing check; `lobe_s(layout, half, d)` names points by distance from the middle. |
 | `move` / `descend` | `move(ctx, arm_id, xyz, rot)`, `descend(ctx, arm_id, xyz, rot, tolerance=0.0025, max_steps=90)` | Motions with nothing dragging: 12 mm servoed segments capped at 40 steps each / one capped servo move held to 2.5 mm. Anything dragging cord (carry, the thread push) is `robot.go_to_pose_cartesian` at speed 0.25 or less, which has no step cap: keep its targets inside the reach box. |
 
 ## Why an UNDER crossing is threaded, never carried
@@ -157,6 +158,48 @@ B's leg), d (start tied, pull both tails). Summarised:
   (draped, not lying), and a pinch there comes up empty. When an earlier variant
   did reach the push, the end stopped 12 mm short of the arch and the regrasp
   pulled it over (`went_over`).
+
+## Laying a lobe round its side pin (probes, October 2026; not yet a reliable skill)
+
+Probes: `graphs/lobe_probe` (experimental recipe in its `scripts/lobe_lib.py`), results and pictures in
+`skills/rope/LOBE_RESULTS.md`. Measure a lobe with `skills.lobe_metrics(nodes, layout, half)` (winding over
+d = 0.082..0.382 from the middle about the half's pin, node error to target, every crossing checked against the
+target by `skills.crossings_consistent`; `ok` = winding ≥ 0.8, median ≤ 15 mm, consistent). **No `lay_lobe` is in
+the library yet: 0 of 71 probe episodes met that criterion; 4 ended wrapped with only target crossings (best median
+17 mm), all on half B.** What was measured:
+
+- **A lobe needs the cord to pass over its pin.** Each half winds 0.19 turns about its side pin at the start and
+  1.25 in the knot. Cord on the bench cannot cross a 50 mm pin and the free end does not go round it, so
+  point-by-point placements (any order, with overshoot) left the lobe at winding ≤ 0.07. What wrapped it, every
+  time it completed (0.83–1.01 turns): the **lift-over**. Take the lobe's apex (d ≈ 0.28), lift to TCP 80 mm, carry
+  it straight over the pin, and set it down on its target + 8–12 mm radially out. Its two legs come down on either
+  side of the pin. The far end (d 0.38) must already be on its target first, so the far leg passes the pin's far side.
+- **Only half B can be laid this way; half A must be woven.** The target's chirality makes A's lobe pass UNDER B's
+  run from the top pin (crossings 4, 6), and A's tail pass UNDER A's own run (crossing 2). B's lobe passes OVER A's
+  run (6, 7) and B's tail OVER B's run (8). A tool-down hand only makes the carried strand go over. Measured: the
+  lift-over recipe on B made crossings 6, 7, 8 all right; mirrored on A it wrapped 0.93 turns at 12 mm median, but
+  crossings 2, 4, 6 were all flipped (and a_points flipped 2). So lay B's lobe first, as the video does with its
+  first lobe. Then make A's by threading A's free end: round pin_left, under B's run at 4, over B's tail at 3,
+  under A's run at 2, over B's lobe at 1. `plan.lay_plan`'s A-first order cannot be carried out without flipped
+  crossings.
+- **Route the far end round the other pin's robot side.** B's start tail (side run, fold, corridor) lies round
+  pin_left's outer side. Carrying B's far end to the right on a straight or far-side path hooks that tail on
+  pin_left. Waypoints at other-pin + (−45, +30) mm and other-pin + (−30, −35) mm (mirrored for A) avoided it.
+- **Clear the other half's end run first.** A's corridor lies 5–42 mm (centre line) from B's lobe outline across
+  the train variants (25 mm nominal). Push it radially out to ≥ 35 mm before the lift-over. Otherwise the pads
+  catch it at the apex release, and once the release lifted A's end and the arm dropped it off the board.
+- **Jaws near a pin:** a pad landing on a pin collides. Open no wider than 2·(r − 9.5 mm), where r is the distance
+  from the TCP to the pin. But ≤ 30 mm releases, and releases on top of another strand, let the cord ride up the
+  pad 30–77 mm with the rising hand, which can lift a wrapped lobe back off its pin. Centring the jaws on the cord
+  before rising helped at the apex, not at the far end next to pin_top.
+- **Do not re-pinch the lobe near its pin.** Shaping placements at d 0.22–0.34 (3–4 cm from the pin) undid
+  wraps that had formed in every shaped run.
+- **Slip:** carrying the far end drags ~45 cm of cord across both runs from the top pin. It slid 7–25 cm through
+  the pads in some runs (always at mu 0.68). Grip fraction 1.0 stopped that slip. Re-grasping after a slip made
+  things worse: re-wraps of −1 turn.
+- **Error floor:** with only the far end and the apex placed, the half's own run from the top pin (d 0.08–0.17)
+  stays 25–40 mm off and the far end drifts ~25 mm. That holds the median at ~17–22 mm even when the lobe proper
+  (d 0.20–0.32) is within 6–15 mm.
 
 ## Known failure modes
 

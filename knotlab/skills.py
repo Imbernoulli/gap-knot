@@ -526,3 +526,108 @@ def home(ctx, arm_id: int) -> str:
     """Back to the arm's home posture, out of the board's way."""
     r = ctx.tool("robot.go_home", arm_id=arm_id)
     return _outcome(r)
+
+
+# ----------------------------------------------------------------------------- lobe measurement (additive)
+
+LOBE_D = (0.082, 0.382)
+"""A lobe's measured range as arc length from the rope's middle [m]: half A s in [L/2 - 0.382, L/2 - 0.082]
+(0.28..0.58), half B the mirror. The target winds ~0.90 (A, pin_left) / ~0.89 (B, pin_right) turns about its pin
+over it. Junction with the half's own run down from the top pin at d ~ 0.17, apex beyond the pin d ~ 0.28,
+far end d ~ 0.38."""
+
+
+def lobe_s(layout: dict, half: str, d: float) -> float:
+    """Arc length of the point ``d`` from the rope's middle on ``half`` ("A": s = L/2 - d, "B": s = L/2 + d)."""
+    arc = layout.get("target_arc") or []
+    length = float(arc[-1]) if arc else 1.3247
+    return min(max(0.5 * length + (-1.0 if half == "A" else 1.0) * float(d), 0.0), length)
+
+
+def _winding(xy, centre) -> float:
+    tot, prev = 0.0, None
+    for x, y in xy:
+        a = math.atan2(y - centre[1], x - centre[0])
+        if prev is not None:
+            tot += (a - prev + math.pi) % (2 * math.pi) - math.pi
+        prev = a
+    return tot / (2 * math.pi)
+
+
+def crossings_consistent(found, target, tol: float = 0.10) -> dict:
+    """Is a rope's diagram a sub-diagram of the target's?
+
+    ``found`` / ``target``: crossings as (s_a, s_b, a_over) with s_a < s_b. Each found crossing must match a
+    distinct target crossing (both strands within ``tol`` along the rope: dragged cord slides a crossing), with
+    the same strand over, and the found crossings must be met along the rope in the target's order (their
+    labels and O/U a subsequence of the target's Gauss code). ``ok`` False means the rope has a crossing the
+    target does not have: ``extra`` (no such strands cross in the target), ``flipped`` (over/under wrong), or
+    out of order.
+    """
+    pairs = sorted((max(abs(c[0] - t[0]), abs(c[1] - t[1])), i, j)
+                   for i, c in enumerate(found) for j, t in enumerate(target)
+                   if max(abs(c[0] - t[0]), abs(c[1] - t[1])) <= tol)
+    match: dict[int, int] = {}
+    used: set[int] = set()
+    for _, i, j in pairs:
+        if i not in match and j not in used:
+            match[i] = j
+            used.add(j)
+    kinds = []
+    for i, c in enumerate(found):
+        j = match.get(i)
+        kinds.append("extra" if j is None else ("ok" if bool(c[2]) == bool(target[j][2]) else "flipped"))
+    out = {"kinds": kinds, "targets": [match.get(i, -1) + 1 for i in range(len(found))],
+           "n_extra": kinds.count("extra"), "n_flipped": kinds.count("flipped")}
+    if out["n_extra"] or out["n_flipped"]:
+        out.update(ok=False, why="extra or flipped")
+        return out
+    ev = sorted([(c[0], match[i] + 1, "O" if c[2] else "U") for i, c in enumerate(found)]
+                + [(c[1], match[i] + 1, "U" if c[2] else "O") for i, c in enumerate(found)])
+    want = iter(sorted([(t[0], k + 1, "O" if t[2] else "U") for k, t in enumerate(target)]
+                       + [(t[1], k + 1, "U" if t[2] else "O") for k, t in enumerate(target)]))
+    want_codes = ((lab, ou) for _, lab, ou in want)
+    sub = all(any(x == y for y in want_codes) for x in ((lab, ou) for _, lab, ou in ev))
+    out.update(ok=bool(sub), why="" if sub else "out of order")
+    return out
+
+
+def lobe_metrics(nodes, layout: dict, half: str) -> dict:
+    """How well one half's lobe is laid: winding about its pin, node error to target, crossings against the target.
+
+    ``nodes``: the rope's nodes, world frame (``rope.state()["nodes"]``, or a saved frame); ``layout``:
+    ``rope.layout()``. Over the lobe's range (``LOBE_D``): ``winding`` [turns, the target's sense positive] against
+    ``winding_target``; ``err_median`` / ``err_max`` [m], node k against target node k; every crossing of the rope
+    classified by :func:`crossings_consistent` (``consistent`` False = a crossing the target does not have).
+    ``ok`` is the lobe criterion: winding >= 0.8, median error <= 15 mm, consistent.
+    """
+    from knotlab import diagram  # numpy-backed; imported here so the module's import stays light
+
+    p = [[float(v) for v in n] for n in nodes]
+    tgt = [[float(v) for v in n] for n in layout["target_nodes"]]
+    origin = (0.6, 0.0, 0.75)
+    arc = [0.0]
+    for a, b in zip(p, p[1:]):
+        arc.append(arc[-1] + math.dist(a, b))
+    tarc = [float(v) for v in layout["target_arc"]]
+    pin = layout["pins"]["left" if half == "A" else "right"]
+    lo, hi = sorted((lobe_s(layout, half, LOBE_D[0]), lobe_s(layout, half, LOBE_D[1])))
+    idx = [k for k in range(min(len(p), len(tgt))) if lo <= arc[k] <= hi]
+    tidx = [k for k in range(len(tgt)) if lo <= tarc[k] <= hi]
+    w_t = _winding([tgt[k][:2] for k in tidx], pin)
+    w = _winding([p[k][:2] for k in idx], pin) * (1.0 if w_t >= 0 else -1.0)
+    err = sorted(_dist(p[k], tgt[k]) for k in idx)
+    med = err[len(err) // 2] if len(err) % 2 else 0.5 * (err[len(err) // 2 - 1] + err[len(err) // 2])
+    import numpy as np
+
+    sub = lambda pts: np.asarray(pts, dtype=float) - np.asarray(origin)
+    found = [(c.s_i, c.s_j, c.i_over) for c in diagram.crossings(sub(p))]
+    target = [(c.s_i, c.s_j, c.i_over) for c in diagram.crossings(sub(tgt))]
+    cons = crossings_consistent(found, target)
+    out = {"winding": round(w, 3), "winding_target": round(abs(w_t), 3), "err_median": round(med, 4),
+           "err_max": round(err[-1], 4), "n_cross": len(found), "n_extra": cons["n_extra"],
+           "n_flipped": cons["n_flipped"], "consistent": cons["ok"],
+           "crossings": [{"s": [round(c[0], 3), round(c[1], 3)], "over": bool(c[2]), "kind": k, "target": t}
+                         for c, k, t in zip(found, cons["kinds"], cons["targets"])]}
+    out["ok"] = bool(out["winding"] >= 0.8 and out["err_median"] <= 0.015 and out["consistent"])
+    return out
