@@ -284,8 +284,9 @@ def main() -> None:
                 ws = codex_agent.prepare(cd / "ws", best)
                 if variants.KNOT == "overhand":  # the refiners read this task's brief, not the double coin's
                     shutil.copy2(ROOT / "harness" / "docs" / "TASK_overhand.md", ws / "docs" / "TASK.md")
-                    if (ROOT / "harness" / "docs" / "img" / "overhand_start_and_target.png").exists():
-                        shutil.copy2(ROOT / "harness" / "docs" / "img" / "overhand_start_and_target.png", ws / "docs" / "img" / "start_and_target.png")
+                    for src, dst in (("overhand_start_and_target.png", "start_and_target.png"), ("overhand_storyboard.jpg", "video_storyboard.jpg")):
+                        if (ROOT / "harness" / "docs" / "img" / src).exists():
+                            shutil.copy2(ROOT / "harness" / "docs" / "img" / src, ws / "docs" / "img" / dst)
                 shutil.copy2(itd / "incumbent" / "REPORT.md", ws / "docs" / "REPORT.md")
                 shutil.copy2(run / "HISTORY.md", ws / "docs" / "HISTORY.md")
                 pics = evidence(itd / "incumbent", ws / "evidence", rep["episodes"])

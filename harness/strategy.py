@@ -24,6 +24,14 @@ def focuses(stats: dict, report: dict, k: int) -> list[str]:
             reasons.setdefault(key, []).append(f"{why} ({m}x)")
     ranked = sorted(groups.items(), key=lambda kv: -kv[1])
     out = []
+    finished_wrong = sum(m for key, m in ranked if ("verify" in key and "untied" in key) or key == "wrong diagram")
+    if finished_wrong >= 0.5 * n:
+        # The graph runs to the end but the rope is not knotted: aim at the steps that make the crossings.
+        return [
+            f"THREADING: in {finished_wrong}/{n} episodes the graph ran to the end without the knot. The bimanual under-crossing (the free end passed UNDER the lifted strand) is the step that never works: look at what the thread step's calls did, where the end and the lifted strand really were (rope.point / rope.state in the traces, and the pictures), and make it reliably produce the under-crossing; check it right after and retry if it came out over or missing.",
+            f"LOOP AND OVER-CROSSING: in {finished_wrong}/{n} episodes the knot was not made. Most end with 0-2 crossings, so the loop (the end crossing OVER the standing part) does not reliably form before the thread. Make the steps before the thread produce exactly the loop the thread needs (verify the crossing appears with the right over/under, adjust and retry), and leave the end lying flat where the thread step can take it.",
+            "STRATEGY: tie it the way the person in the clip does (docs/img/video_storyboard.jpg): make a big loop by crossing the end over the standing part, pass the end through the loop from below, pull both ends. Only the topology counts (either handedness), not the reference shape. Replace exact point-by-point laying where a coarser, more robust motion does the job, keeping the graph's subgraph interface so the parent routing still fits.",
+        ][:k] + ["ROBUSTNESS: look at which variants fail and make the graph adapt to them"] * max(0, k - 3)
     if ranked:
         top, m = ranked[0]
         why = "; ".join(reasons.get(top, [])[:4])
