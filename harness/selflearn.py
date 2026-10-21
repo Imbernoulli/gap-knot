@@ -181,10 +181,16 @@ def focuses(stats: dict, report: dict, k: int) -> list[str]:
     reasons: dict[str, list[str]] = {}
     for c, m in stats["causes"].items():
         mm = _re.match(r"graph ended at '[^']+' after (\S+) routed '([^']+)'(?: \((.*)\))?", c)
-        key = f"{mm.group(1)} routing '{mm.group(2)}'" if mm else c
+        mc = _re.match(r"node (\S+?)\.(\S+) (error|unfinished)(?:: (.*))?", c)
+        if mm:
+            key, why = f"{mm.group(1)} routing '{mm.group(2)}'", mm.group(3)
+        elif mc:
+            key, why = f"{mc.group(1)} crashing ({mc.group(3)} in node {mc.group(1)}.{mc.group(2)})", (mc.group(4) or "")[-200:]
+        else:
+            key, why = c, None
         groups[key] = groups.get(key, 0) + m
-        if mm and mm.group(3):
-            reasons.setdefault(key, []).append(f"{mm.group(3)} ({m}x)")
+        if why:
+            reasons.setdefault(key, []).append(f"{why} ({m}x)")
     ranked = sorted(groups.items(), key=lambda kv: -kv[1])
     out = []
     if ranked:
