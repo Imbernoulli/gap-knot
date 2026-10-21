@@ -11,7 +11,7 @@ from knotlab.task import Variant
 
 RANGES = {
     "young_modulus": ("log", 0.5e5, 2.0e5),  # a softer or stiffer cord
-    "mu_cable": ("lin", 0.15, 0.40),  # slipperier or grippier
+    "mu_cable": ("lin", 0.6, 1.4),  # slipperier or grippier: friction 0.77-1.18
     "axial_stiffness": ("log", 200.0, 450.0),
     "board_x": ("lin", -0.150, -0.130),  # the jig shifted on the bench
     "board_y": ("lin", -0.015, 0.015),

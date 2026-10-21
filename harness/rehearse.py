@@ -21,7 +21,7 @@ sys.path.insert(0, str(ROOT))
 
 from harness import variants  # noqa: E402
 
-MAX_STEPS = int(os.environ.get("KNOT_MAX_STEPS", "9000"))  # 150 s of scene time
+MAX_STEPS = int(os.environ.get("KNOT_MAX_STEPS", "18000"))  # 300 s of scene time
 
 
 def _episode_cmd(graph: str, variant_json: str, out: str, max_steps: int) -> list[str]:
@@ -60,7 +60,7 @@ def run_local(graph: Path, out: Path, vs: list, *, slots: list[str], max_steps: 
     return results
 
 
-def run_daytona_many(specs: list[tuple[Path, Path]], vs: list, *, max_steps: int = MAX_STEPS, timeout_s: int = 3600,
+def run_daytona_many(specs: list[tuple[Path, Path]], vs: list, *, max_steps: int = MAX_STEPS, timeout_s: int = 5400,
                      pool=None) -> list[dict]:
     """Several graphs, each on the same instances, as ONE batch on the Daytona fleet (fleet.pool.Pool).
 

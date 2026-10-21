@@ -144,9 +144,11 @@ def rehearse_many(specs: list, vs: list, backend: str, pool=None) -> list[dict]:
 
 
 def better(a: dict, b: dict, margin: float = 0.0) -> bool:
-    """Is a better than b: more successes, then a higher code prefix, then a shorter cycle."""
+    """Is a better than b: more successes, then more target crossings right, then a longer code prefix, then a shorter cycle."""
     if a["successes"] != b["successes"]:
         return a["successes"] > b["successes"] + margin
+    if abs(a.get("mean_cross_ok", 0) - b.get("mean_cross_ok", 0)) > 0.25:
+        return a.get("mean_cross_ok", 0) > b.get("mean_cross_ok", 0)
     if abs(a["mean_prefix"] - b["mean_prefix"]) > 0.5:
         return a["mean_prefix"] > b["mean_prefix"]
     ta, tb = a.get("mean_time_success_s") or 1e9, b.get("mean_time_success_s") or 1e9
@@ -197,10 +199,10 @@ def history_md(hist: list[dict]) -> str:
     L = ["# History of this self-learning run", ""]
     for h in hist:
         L.append(f"## Iteration {h['iter']}: incumbent {h['incumbent']['successes']}/{h['incumbent']['episodes']} "
-                 f"(prefix {h['incumbent']['mean_prefix']:.1f}, success time {h['incumbent'].get('mean_time_success_s')})")
+                 f"(crossings right {h['incumbent'].get('mean_cross_ok', 0):.1f}/8, prefix {h['incumbent']['mean_prefix']:.1f}, success time {h['incumbent'].get('mean_time_success_s')})")
         for c in h["candidates"]:
             L.append(f"- cand {c['name']} [{c['focus']}]: {c.get('stats', {}).get('successes', '?')}/{c.get('stats', {}).get('episodes', '?')} "
-                     f"(prefix {c.get('stats', {}).get('mean_prefix', 0):.1f}, success time {c.get('stats', {}).get('mean_time_success_s')}) "
+                     f"(crossings right {c.get('stats', {}).get('mean_cross_ok', 0):.1f}/8, prefix {c.get('stats', {}).get('mean_prefix', 0):.1f}, success time {c.get('stats', {}).get('mean_time_success_s')}) "
                      f"{'ACCEPTED' if c.get('accepted') else 'rejected'}{' — ' + c['invalid'] if c.get('invalid') else ''}")
             if c.get("changes"):
                 L.append("  changes: " + c["changes"][:1200].replace("\n", "\n  "))
@@ -248,7 +250,7 @@ def main() -> None:
             vs = variants.train(a.n, offset=it * a.n)  # fresh instances every iteration, shared by all candidates in it
             log(run, f"iter {it}: rehearsing the incumbent on {len(vs)} instances")
             inc = rehearse_graph(best, itd / "incumbent", vs, a.backend, pool)
-            log(run, f"  incumbent {inc['successes']}/{inc['episodes']} prefix {inc['mean_prefix']:.1f} time {inc.get('mean_time_success_s')}")
+            log(run, f"  incumbent {inc['successes']}/{inc['episodes']} crossings {inc.get('mean_cross_ok', 0):.1f}/8 prefix {inc['mean_prefix']:.1f} time {inc.get('mean_time_success_s')}")
             rep = json.loads((itd / "incumbent" / "REPORT.json").read_text())
             fs = focuses(inc, rep, a.cands)
             (run / "HISTORY.md").write_text(history_md(hist))
@@ -275,7 +277,7 @@ def main() -> None:
             stats = rehearse_many([(Path(c["graph"]), itd / f"cand_{c['name']}" / "eval") for c in valid], vs, a.backend, pool)
             for c, s in zip(valid, stats):
                 c["stats"] = s
-                log(run, f"  cand {c['name']}: {s['successes']}/{s['episodes']} prefix {s['mean_prefix']:.1f} time {s.get('mean_time_success_s')}")
+                log(run, f"  cand {c['name']}: {s['successes']}/{s['episodes']} crossings {s.get('mean_cross_ok', 0):.1f}/8 prefix {s['mean_prefix']:.1f} time {s.get('mean_time_success_s')}")
             winner = None
             for c in valid:
                 if better(c["stats"], inc) and (winner is None or better(c["stats"], winner["stats"])):

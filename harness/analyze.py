@@ -228,6 +228,7 @@ def aggregate(diags: list[dict]) -> dict:
         "success_rate": k / n if n else 0.0,
         "wilson95": [round(lo, 3), round(hi, 3)],
         "mean_prefix": float(np.mean([d["prefix"] or 0 for d in diags])) if n else 0.0,
+        "mean_cross_ok": float(np.mean([sum(c["state"] == "OK" for c in d["crossings"]) for d in diags])) if n else 0.0,
         "mean_time_success_s": float(np.mean(times_ok)) if times_ok else None,
         "mean_time_all_s": float(np.mean([d["sim_time_s"] or 0 for d in diags])) if n else None,
         "causes": dict(causes),
@@ -241,7 +242,7 @@ def aggregate(diags: list[dict]) -> dict:
 def report(stats: dict, diags: list[dict], *, title: str = "Rehearsal report") -> str:
     L = [f"# {title}", ""]
     L.append(f"**Success {stats['successes']}/{stats['episodes']} = {stats['success_rate']:.0%}** (Wilson 95% {stats['wilson95'][0]:.2f}–{stats['wilson95'][1]:.2f}); "
-             f"mean code prefix {stats['mean_prefix']:.1f}/16; mean sim time of successes {stats['mean_time_success_s'] or float('nan'):.1f} s, of all {stats['mean_time_all_s'] or float('nan'):.1f} s.")
+             f"mean code prefix {stats['mean_prefix']:.1f}/16; mean target crossings right {stats['mean_cross_ok']:.1f}/8; mean sim time of successes {stats['mean_time_success_s'] or float('nan'):.1f} s, of all {stats['mean_time_all_s'] or float('nan'):.1f} s.")
     L.append("")
     L.append("## Why episodes failed")
     for c, m in sorted(stats["causes"].items(), key=lambda kv: -kv[1]):

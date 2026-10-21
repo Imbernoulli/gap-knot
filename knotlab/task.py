@@ -35,7 +35,8 @@ class Variant:
     radius: float = 0.005
     young_modulus: float = 1.0e5  # [Pa]: a soft cord (the knot example's)
     axial_stiffness: float = 300.0  # [N]
-    mu_cable: float = 0.25  # friction coefficient squared, between strands and at the pads
+    mu_cable: float = 1.0  # friction coefficient squared (SuperDex: one friction for strands, pads and bench).
+    # Real2Sim: in the video a cord laid on the foam board stays put; at 0.25 placements sprang back 2-6 cm, at 1.0 1-3 mm.
     # Where things are, in the bench frame.
     board_x: float = -0.14  # the knot's centre, bench x [m]
     board_y: float = 0.0
