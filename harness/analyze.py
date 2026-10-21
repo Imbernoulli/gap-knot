@@ -185,6 +185,31 @@ def bad_calls(ep: dict, node: str, limit: int = 6) -> list[str]:
     return out
 
 
+def shape_progress(ep: dict) -> dict:
+    """How much of the rope lies where the tied knot has it: fraction of nodes within 20 mm of their target, and the mean distance."""
+    from knotlab import task as _task
+
+    try:
+        frames = np.load(Path(ep["dir"]) / "rope_frames.npy")
+        v = _task.Variant(**ep["result"]["variant"])
+        tgt = np.asarray(_task.layout(v)["target"])[:, :2] + np.array([0.6, 0.0])
+        d = np.linalg.norm(frames[-1][:, :2].astype(np.float64) - tgt, axis=1)
+        return {"near": float(np.mean(d < 0.02)), "mean_dist": float(d.mean())}
+    except Exception:
+        return {"near": 0.0, "mean_dist": None}
+
+
+def depth(ep: dict, spans: list[dict]) -> int:
+    """How far along the workflow's top-level subgraphs (in the order the workflow declares them) the episode got."""
+    try:
+        order = [n for n, d in json.loads((Path(ep["dir"]) / "trace" / "0000" / "workflow.json").read_text())["nodes"].items()
+                 if d.get("type") == "subgraph"]
+    except Exception:
+        return 0
+    seen = {sp["node"].split(".")[0] for sp in spans}
+    return max([order.index(n) + 1 for n in seen if n in order] or [0])
+
+
 def diagnose(ep: dict, tcross: list[dict]) -> dict:
     r = ep["result"]
     rows = ep["rows"]
@@ -246,6 +271,8 @@ def diagnose(ep: dict, tcross: list[dict]) -> dict:
         "graph_end": ge,
         "error_calls": bad_calls(ep, err_span["node"]) if err_span else (bad_calls(ep, ge["last_route"]["node"]) if ge["last_route"] else []),
         "regressions": [{"node": sp["node"], "from": sp["prefix_before"], "to": sp["prefix_after"]} for sp in regress],
+        "shape": shape_progress(ep),
+        "depth": depth(ep, spans),
         "spans": [{k: sp.get(k) for k in ("node", "start", "end", "sim_s", "status", "prefix_before", "prefix_after")} for sp in spans],
         "variant": r.get("variant"),
     }
@@ -279,6 +306,8 @@ def aggregate(diags: list[dict]) -> dict:
         "wilson95": [round(lo, 3), round(hi, 3)],
         "mean_prefix": float(np.mean([d["prefix"] or 0 for d in diags])) if n else 0.0,
         "mean_cross_ok": float(np.mean([sum(c["state"] == "OK" for c in d["crossings"]) for d in diags])) if n else 0.0,
+        "mean_depth": float(np.mean([d.get("depth", 0) for d in diags])) if n else 0.0,
+        "mean_shape_near": float(np.mean([(d.get("shape") or {}).get("near", 0.0) for d in diags])) if n else 0.0,
         "mean_time_success_s": float(np.mean(times_ok)) if times_ok else None,
         "mean_time_all_s": float(np.mean([d["sim_time_s"] or 0 for d in diags])) if n else None,
         "causes": dict(causes),
@@ -292,7 +321,8 @@ def aggregate(diags: list[dict]) -> dict:
 def report(stats: dict, diags: list[dict], *, title: str = "Rehearsal report") -> str:
     L = [f"# {title}", ""]
     L.append(f"**Success {stats['successes']}/{stats['episodes']} = {stats['success_rate']:.0%}** (Wilson 95% {stats['wilson95'][0]:.2f}–{stats['wilson95'][1]:.2f}); "
-             f"mean code prefix {stats['mean_prefix']:.1f}/16; mean target crossings right {stats['mean_cross_ok']:.1f}/8; mean sim time of successes {stats['mean_time_success_s'] or float('nan'):.1f} s, of all {stats['mean_time_all_s'] or float('nan'):.1f} s.")
+             f"mean code prefix {stats['mean_prefix']:.1f}/16; mean target crossings right {stats['mean_cross_ok']:.1f}/8; "
+             f"rope within 20 mm of its target {100 * stats['mean_shape_near']:.0f}% of nodes; furthest top-level subgraph reached {stats['mean_depth']:.1f} on average; mean sim time of successes {stats['mean_time_success_s'] or float('nan'):.1f} s, of all {stats['mean_time_all_s'] or float('nan'):.1f} s.")
     L.append("")
     L.append("## Why episodes failed")
     for c, m in sorted(stats["causes"].items(), key=lambda kv: -kv[1]):
@@ -314,7 +344,8 @@ def report(stats: dict, diags: list[dict], *, title: str = "Rehearsal report") -
         v = d.get("variant") or {}
         L.append(f"### {d['id']}: {'SUCCESS' if d['success'] else 'FAIL'} — {d['cause']}")
         L.append(f"variant: young {v.get('young_modulus', 0):.3g} Pa, mu {v.get('mu_cable', 0):.2f}, board ({v.get('board_x', 0):+.3f}, {v.get('board_y', 0):+.3f}) yaw {v.get('board_yaw', 0):+.3f}, splay {v.get('splay', 0):.3f}, drop {v.get('drop', 0):.3f}, lay_noise {v.get('lay_noise', 0):.3f}")
-        L.append(f"final code `{d['final_code']}` (prefix {d['prefix']}/16, extra crossings {d['extra_crossings']}), sim {d['sim_time_s']} s")
+        L.append(f"final code `{d['final_code']}` (prefix {d['prefix']}/16, extra crossings {d['extra_crossings']}), sim {d['sim_time_s']} s, "
+                 f"{100 * (d.get('shape') or {}).get('near', 0):.0f}% of the rope within 20 mm of target, reached top-level subgraph #{d.get('depth')}")
         bad = [c for c in d["crossings"] if c["state"] != "OK"]
         if bad:
             L.append("crossings wrong: " + "; ".join(f"#{c['id']} {c['state']}" + (f" (made in {c.get('born_node')} at step {c.get('born_step')})" if c["state"] == "FLIPPED" else "") for c in bad))

@@ -155,11 +155,16 @@ def rehearse_many(specs: list, vs: list, backend: str, pool=None) -> list[dict]:
 
 
 def better(a: dict, b: dict, margin: float = 0.0) -> bool:
-    """Is a better than b: more successes, then more target crossings right, then a longer code prefix, then a shorter cycle."""
+    """Is a better than b: more successes, then more target crossings right, then further through the graph, then more
+    rope in place, then a longer code prefix, then a shorter cycle."""
     if a["successes"] != b["successes"]:
         return a["successes"] > b["successes"] + margin
     if abs(a.get("mean_cross_ok", 0) - b.get("mean_cross_ok", 0)) > 0.25:
         return a.get("mean_cross_ok", 0) > b.get("mean_cross_ok", 0)
+    if abs(a.get("mean_depth", 0) - b.get("mean_depth", 0)) > 0.3:  # got further through the graph
+        return a.get("mean_depth", 0) > b.get("mean_depth", 0)
+    if abs(a.get("mean_shape_near", 0) - b.get("mean_shape_near", 0)) > 0.03:  # more rope where the knot needs it
+        return a.get("mean_shape_near", 0) > b.get("mean_shape_near", 0)
     if abs(a["mean_prefix"] - b["mean_prefix"]) > 0.5:
         return a["mean_prefix"] > b["mean_prefix"]
     ta, tb = a.get("mean_time_success_s") or 1e9, b.get("mean_time_success_s") or 1e9
@@ -276,7 +281,7 @@ def main() -> None:
             vs = variants.train(a.n, offset=it * a.n)  # fresh instances every iteration, shared by all candidates in it
             log(run, f"iter {it}: rehearsing the incumbent on {len(vs)} instances")
             inc = rehearse_graph(best, itd / "incumbent", vs, a.backend, pool)
-            log(run, f"  incumbent {inc['successes']}/{inc['episodes']} crossings {inc.get('mean_cross_ok', 0):.1f}/8 prefix {inc['mean_prefix']:.1f} time {inc.get('mean_time_success_s')}")
+            log(run, f"  incumbent {inc['successes']}/{inc['episodes']} crossings {inc.get('mean_cross_ok', 0):.1f}/8 depth {inc.get('mean_depth', 0):.1f} shape {inc.get('mean_shape_near', 0):.2f} prefix {inc['mean_prefix']:.1f} time {inc.get('mean_time_success_s')}")
             rep = json.loads((itd / "incumbent" / "REPORT.json").read_text())
             fs = focuses(inc, rep, a.cands)
             (run / "HISTORY.md").write_text(history_md(hist))
@@ -303,7 +308,7 @@ def main() -> None:
             stats = rehearse_many([(Path(c["graph"]), itd / f"cand_{c['name']}" / "eval") for c in valid], vs, a.backend, pool)
             for c, s in zip(valid, stats):
                 c["stats"] = s
-                log(run, f"  cand {c['name']}: {s['successes']}/{s['episodes']} crossings {s.get('mean_cross_ok', 0):.1f}/8 prefix {s['mean_prefix']:.1f} time {s.get('mean_time_success_s')}")
+                log(run, f"  cand {c['name']}: {s['successes']}/{s['episodes']} crossings {s.get('mean_cross_ok', 0):.1f}/8 depth {s.get('mean_depth', 0):.1f} shape {s.get('mean_shape_near', 0):.2f} prefix {s['mean_prefix']:.1f} time {s.get('mean_time_success_s')}")
             winner = None
             for c in valid:
                 if better(c["stats"], inc) and (winner is None or better(c["stats"], winner["stats"])):
