@@ -18,6 +18,7 @@ import contextlib
 import dataclasses
 import json
 import math
+import os
 from dataclasses import dataclass
 
 import numpy as np
@@ -157,13 +158,16 @@ def _register_measure() -> None:
 
 
 def task_doc(max_steps: int = 6000) -> str:
+    # $KNOTLAB_GOAL_HOLD lengthens the hold, so a rehearsal that starts tied (a dressing probe) is not
+    # scored done on its first second.
+    hold = float(os.environ.get("KNOTLAB_GOAL_HOLD", "1.0"))
     return f"""
 (define (problem double_coin_knot)
   (:language tie a double coin knot: hang the cord's middle on the top pin, lay a lobe round each side pin, weave the tails over and under, and pull it even)
   (:staging (:scene bench_075) (:embodiment yam_bimanual) (:physics knot_superdex@v1) (:max-steps {max_steps}))
   (:fixtures board - knot_board pin_top - knot_pin_top pin_left - knot_pin_left pin_right - knot_pin_right)
   (:objects rope - knot_rope)
-  (:goal (once (hold-for 1.0 (>= (coin_progress rope) 1.0)))))
+  (:goal (once (hold-for {hold} (>= (coin_progress rope) 1.0)))))
 """
 
 

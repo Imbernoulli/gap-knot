@@ -26,7 +26,15 @@ sys.path.insert(0, str(ROOT))
 
 from harness import codex_agent, rehearse, variants  # noqa: E402
 from harness.analyze import analyze  # noqa: E402
-from harness.validate import check  # noqa: E402
+
+
+def check(graph_dir) -> list[str]:
+    """The static validator, run in RoboSimStudio's venv (this loop runs where the Daytona SDK is)."""
+    import subprocess
+
+    p = subprocess.run([str(ROOT / "harness" / "validate.sh"), str(graph_dir)], capture_output=True, text=True, timeout=600)
+    lines = [l for l in p.stdout.splitlines() if l.strip() and not l.startswith("warning:")]
+    return [] if p.returncode == 0 and lines and lines[-1] == "VALID" else (lines or [p.stderr[-500:]])
 
 PROMPTS = ROOT / "harness" / "prompts"
 IMAGES = [ROOT / "harness" / "docs" / "img" / "video_storyboard.jpg", ROOT / "harness" / "docs" / "img" / "start_and_target.png"]
@@ -114,6 +122,24 @@ def rehearse_graph(graph: Path, out: Path, vs: list, backend: str, pool=None) ->
     stats, diags, md = analyze(out, title=f"Rehearsal of {graph.parent.name}/{graph.name}")
     (out / "REPORT.md").write_text(md)
     (out / "REPORT.json").write_text(json.dumps({"stats": stats, "episodes": diags}, indent=1))
+    return stats
+
+
+def rehearse_many(specs: list, vs: list, backend: str, pool=None) -> list[dict]:
+    """Several graphs on the same instances in one batch, each then analysed on its own."""
+    if not specs:
+        return []
+    if backend == "local":
+        for graph, out in specs:
+            rehearse.run_local(graph, out, vs, slots=["0-31", "32-63", "64-95", "96-127"])
+    else:
+        rehearse.run_daytona_many(specs, vs, pool=pool)
+    stats = []
+    for graph, out in specs:
+        st, diags, md = analyze(out, title=f"Rehearsal of {out.parent.name}")
+        (out / "REPORT.md").write_text(md)
+        (out / "REPORT.json").write_text(json.dumps({"stats": st, "episodes": diags}, indent=1))
+        stats.append(st)
     return stats
 
 
@@ -214,7 +240,8 @@ def main() -> None:
     if a.backend == "daytona":
         from fleet.pool import Pool
 
-        pool = Pool.from_env()
+        pool = Pool("loop")
+        pool.up(min(48, a.n * (a.cands + 1)))
     try:
         for it in range(len(hist), a.iters):
             itd = run / f"iter_{it:02d}"
@@ -245,8 +272,7 @@ def main() -> None:
                 cands = list(ex.map(refine, range(a.cands)))
             valid = [c for c in cands if not c["invalid"]]
             log(run, f"  {len(valid)}/{len(cands)} candidates valid; rehearsing them on the same instances")
-            with ThreadPoolExecutor(max(1, len(valid))) as ex:
-                stats = list(ex.map(lambda c: rehearse_graph(Path(c["graph"]), itd / f"cand_{c['name']}" / "eval", vs, a.backend, pool), valid))
+            stats = rehearse_many([(Path(c["graph"]), itd / f"cand_{c['name']}" / "eval") for c in valid], vs, a.backend, pool)
             for c, s in zip(valid, stats):
                 c["stats"] = s
                 log(run, f"  cand {c['name']}: {s['successes']}/{s['episodes']} prefix {s['mean_prefix']:.1f} time {s.get('mean_time_success_s')}")
@@ -273,7 +299,7 @@ def main() -> None:
                 hist_path.write_text(json.dumps(hist, indent=1))
     finally:
         if pool is not None:
-            pool.close()
+            pool.down()
 
 
 if __name__ == "__main__":

@@ -25,7 +25,7 @@ LABELS = {"owner": "bohan", "label": "bohan", "purpose": "gap-knot"}
 """Every sandbox this package creates carries these; nothing without them is ever touched."""
 POOL_LABEL = "gk-pool"
 """An extra label naming the pool a sandbox belongs to (default pool: "default")."""
-MAX_ALIVE = 24
+MAX_ALIVE = 48
 """Hard cap on owner=bohan,purpose=gap-knot sandboxes alive at once, across all pools."""
 
 # Remote layout (baked into the snapshot, see fleet/snapshot.py).

@@ -60,32 +60,60 @@ def run_local(graph: Path, out: Path, vs: list, *, slots: list[str], max_steps: 
     return results
 
 
-def run_daytona(graph: Path, out: Path, vs: list, *, max_steps: int = MAX_STEPS, timeout_s: int = 7200, pool=None) -> list[dict]:
-    """The same episodes on the Daytona fleet (fleet.pool.Pool): one episode per sandbox at a time."""
-    from fleet.pool import Pool  # built by the fleet agent
+def run_daytona_many(specs: list[tuple[Path, Path]], vs: list, *, max_steps: int = MAX_STEPS, timeout_s: int = 3600,
+                     pool=None) -> list[dict]:
+    """Several graphs, each on the same instances, as ONE batch on the Daytona fleet (fleet.pool.Pool).
+
+    ``specs`` is [(graph_dir, out_dir)]; episode k of graph g lands in out_dir/ep<seed>. One episode per
+    2-vCPU sandbox at a time; needs the daytona SDK, so run this under miniconda's python.
+    """
+    import shutil
+    import tarfile
+    import tempfile
+
+    from fleet.pool import Job, Pool
 
     own = pool is None
-    pool = pool or Pool.from_env()
-    jobs = []
-    for v in vs:
-        rid = f"ep{v.seed:06d}"
-        if (out / rid / "result.json").exists():
-            continue
-        jobs.append({
-            "id": rid,
-            "cmd": " ".join(shlex.quote(c) for c in ["python", "-m", "knotlab.episode", "--graph", "graph", "--variant", v.to_json(),
-                                                      "--out", f"out/{rid}", "--max-steps", str(max_steps), "--every", "30", "--frames", "15"]),
-            "files": {str(graph): "graph"},
-            "outputs": [f"out/{rid}"],
-            "timeout_s": timeout_s,
-            "env": {},
-        })
+    pool = pool or Pool("loop")
+    tmp = Path(tempfile.mkdtemp(prefix="graphs_"))
+    jobs, where = [], {}
+    for g, (graph, out) in enumerate(specs):
+        out.mkdir(parents=True, exist_ok=True)
+        tgz = tmp / f"g{g}.tgz"
+        with tarfile.open(tgz, "w:gz") as tar:
+            tar.add(str(graph), arcname=".", filter=lambda ti: None if "__pycache__" in ti.name else ti)
+        for v in vs:
+            rid = f"ep{v.seed:06d}"
+            if (out / rid / "result.json").exists():
+                continue
+            jid = f"g{g}-{int(time.time()) % 100000:05d}-{rid}"
+            cmd = (f'mkdir -p "$GK_JOB_DIR/graph" && tar xzf "$GK_JOB_DIR/graph.tgz" -C "$GK_JOB_DIR/graph" && '
+                   + " ".join(shlex.quote(c) for c in ["python", "-m", "knotlab.episode", "--variant", v.to_json(),
+                                                        "--out", f"out/{jid}", "--max-steps", str(max_steps), "--every", "30", "--frames", "15"])
+                   + ' --graph "$GK_JOB_DIR/graph"')
+            jobs.append(Job(id=jid, cmd=cmd, files={str(tgz): "graph.tgz"}, outputs=[f"out/{jid}"], timeout_s=timeout_s))
+            where[jid] = (out, rid)
     try:
-        res = pool.run(jobs, results_dir=str(out))
+        fleet_dir = specs[0][1].parent / f"_fleet_{int(time.time())}"
+        res = pool.run(jobs, results_dir=str(fleet_dir)) if jobs else []
     finally:
         if own:
-            pool.close()
-    return res
+            pool.down()
+    rows = []
+    for r in res:
+        out, rid = where[r.id]
+        src = Path(r.outputs_dir or "") / "out" / r.id
+        if src.exists():
+            if (out / rid).exists():
+                shutil.rmtree(out / rid)
+            shutil.move(str(src), str(out / rid))
+        rows.append({"id": r.id, "status": r.status, "exit": r.exit_code, "run_s": r.run_s, "attempts": r.attempts})
+    shutil.rmtree(tmp, ignore_errors=True)
+    return rows
+
+
+def run_daytona(graph: Path, out: Path, vs: list, **kw) -> list[dict]:
+    return run_daytona_many([(graph, out)], vs, **kw)
 
 
 def main() -> None:
@@ -107,7 +135,7 @@ def main() -> None:
     if a.backend == "local":
         r = run_local(graph, out, vs, slots=a.slots.split(","), max_steps=a.max_steps)
     else:
-        r = run_daytona(graph, out, vs, max_steps=a.max_steps)
+        r = run_daytona(graph, out, vs, max_steps=a.max_steps)  # needs the daytona SDK: run with miniconda's python
     print(json.dumps(r))
     from harness.analyze import analyze
 
