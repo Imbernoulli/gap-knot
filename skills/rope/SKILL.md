@@ -195,7 +195,7 @@ the library yet: 0 of 71 probe episodes met that criterion; 4 ended wrapped with
 - **Do not re-pinch the lobe near its pin.** Shaping placements at d 0.22–0.34 (3–4 cm from the pin) undid
   wraps that had formed in every shaped run.
 - **Slip:** carrying the far end drags ~45 cm of cord across both runs from the top pin. It slid 7–25 cm through
-  the pads in some runs (always at mu 0.68). Grip fraction 1.0 stopped that slip. Re-grasping after a slip made
+  the pads in every run at mu 0.68 and in some at mu 1.0. Grip fraction 1.0 stopped that slip. Re-grasping after a slip made
   things worse: re-wraps of −1 turn.
 - **Error floor:** with only the far end and the apex placed, the half's own run from the top pin (d 0.08–0.17)
   stays 25–40 mm off and the far end drifts ~25 mm. That holds the median at ~17–22 mm even when the lobe proper
