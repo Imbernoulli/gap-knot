@@ -270,7 +270,6 @@ def main() -> None:
         from fleet.pool import Pool
 
         pool = Pool("loop")
-        pool.up(min(48, a.n * (a.cands + 1)))
     try:
         for it in range(len(hist), a.iters):
             itd = run / f"iter_{it:02d}"

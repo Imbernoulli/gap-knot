@@ -95,7 +95,8 @@ def run_daytona_many(specs: list[tuple[Path, Path]], vs: list, *, max_steps: int
             where[jid] = (out, rid)
     try:
         fleet_dir = specs[0][1].parent / f"_fleet_{int(time.time())}"
-        res = pool.run(jobs, results_dir=str(fleet_dir)) if jobs else []
+        # Exactly as many sandboxes as episodes (up to the cap), torn down after: nothing idles between batches.
+        res = pool.run(jobs, results_dir=str(fleet_dir), size=min(len(jobs), 48), keep=False) if jobs else []
     finally:
         if own:
             pool.down()
