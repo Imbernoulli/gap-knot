@@ -55,7 +55,7 @@ def generate(run: Path) -> Path:
         return final
     coord = codex_agent.prepare(gen / "coordinator")
     (coord / "graph" / "scripts").mkdir(parents=True, exist_ok=True)
-    if not (coord / ".last_coordinator.md").exists() or check(coord / "graph"):
+    if not (coord / "graph" / "SEGMENTS.md").exists() or check(coord / "graph"):
         log(run, "generation: orchestration agent decomposing the task")
         r = codex_agent.run("coordinator", coord, (PROMPTS / "coordinator.md").read_text(), images=IMAGES, timeout_s=3600)
         log(run, f"  coordinator exit={r['exit']} {r['wall_s']}s")
@@ -71,16 +71,27 @@ def generate(run: Path) -> Path:
     log(run, f"generation: {len(sgs)} subgraphs {sgs}; skill agents in parallel")
 
     def fill(sg: str) -> dict:
-        ws = codex_agent.prepare(gen / f"sg_{sg}", coord / "graph")
-        if (ws / f".last_skill_{sg}.md").exists() and not check(ws / "graph"):
+        ws = gen / f"sg_{sg}"
+        done = ws / f".done_skill_{sg}"
+        resumed = (ws / "graph" / "workflow.json").exists()
+        if done.exists():
             return {"sg": sg, "exit": 0, "cached": True}
+        codex_agent.prepare(ws, None if resumed else coord / "graph")
         prompt = (PROMPTS / "subgraph.md").read_text().replace("{sg}", sg)
+        if resumed:
+            prompt = ("NOTE: an earlier session on this subgraph was cut off (account usage limit) before it finished. "
+                      "`graph/` holds its partial work. Review it critically, complete it, and validate.\n\n" + prompt)
         r = codex_agent.run(f"skill_{sg}", ws, prompt, images=IMAGES[1:], timeout_s=3600)
-        return {"sg": sg, **{k: r[k] for k in ("exit", "wall_s")}}
+        if r["exit"] == 0 and not r.get("limited"):
+            done.write_text(json.dumps({k: r[k] for k in ("exit", "wall_s")}))
+        return {"sg": sg, **{k: r[k] for k in ("exit", "wall_s", "limited")}}
 
-    with ThreadPoolExecutor(len(sgs)) as ex:
-        for r in ex.map(fill, sgs):
-            log(run, f"  skill agent {r}")
+    with ThreadPoolExecutor(len(sgs)) as ex:  # codex_agent caps how many run at once
+        results = list(ex.map(fill, sgs))
+    for r in results:
+        log(run, f"  skill agent {r}")
+    if any(r.get("limited") or r["exit"] != 0 for r in results):
+        raise SystemExit("some skill agents did not finish (see loop.log); rerun to resume them")
     # Merge: the skeleton, each subgraph's body from its own agent, each agent's own scripts.
     merged = json.loads(json.dumps(skeleton))
     if final.exists():
