@@ -58,7 +58,9 @@ def run(graph: str, variant_json: str, out: str, *, max_steps: int = 6000, every
             events.append({"node": name, "event": "end", "step": int(env.step_count), "ok": bool(success)})
             return super()._on_graph_node_end(name, success, generation)
 
-    policy = Traced(env, graph=graph, task_tools=tools.register, trace_dir=str(out_dir / "trace"))
+    # bus_timeout: a tool call (an IK solve, a long carry) may take minutes of wall time on a 2-vCPU sandbox;
+    # the default 30 s watchdog turned slow machines into graph failures.
+    policy = Traced(env, graph=graph, task_tools=tools.register, trace_dir=str(out_dir / "trace"), bus_timeout=600.0)
 
     def observe(current, action, observed, earned, details):
         step = int(env.step_count)
