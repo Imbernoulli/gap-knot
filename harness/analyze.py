@@ -17,11 +17,18 @@ import numpy as np
 
 from knotlab import diagram, geometry
 
-TOL_S = 0.035  # how far [m along the rope] a crossing may sit from the target's and still be that crossing
+TOL_S = 0.035
+TARGET_CODE_STR = "1O 2U 3O 4U 5O 6U 2O 7U 4O 8U 6O 1U 7O 3U 8O 5U"  # how far [m along the rope] a crossing may sit from the target's and still be that crossing
 
 
-def target_crossings(radius: float = 0.005) -> list[dict]:
-    g = geometry.target(geometry.KnotSpec(radius=radius))
+def target_crossings(radius: float = 0.005, variant: dict | None = None) -> list[dict]:
+    """The target knot's crossings by where along the rope their strands are: the episode's own target if given."""
+    if variant:
+        from knotlab import task as _task
+
+        g = np.asarray(_task.layout(_task.Variant(**variant))["target"])
+    else:
+        g = geometry.target(geometry.KnotSpec(radius=radius))
     cs = sorted(diagram.crossings(g), key=lambda c: c.s_i)
     return [{"id": k + 1, "s_a": c.s_i, "s_b": c.s_j, "a_over": c.i_over} for k, c in enumerate(cs)]
 
@@ -315,6 +322,7 @@ def aggregate(diags: list[dict]) -> dict:
         "flipped_born_in": {cid: dict(c) for cid, c in sorted(born.items())},
         "node_mean_sim_s": {k2: round(float(np.mean(v)), 2) for k2, v in sorted(node_time.items())},
         "node_errors": dict(node_err),
+        "target_code": TARGET_CODE_STR,
     }
 
 
@@ -328,7 +336,7 @@ def report(stats: dict, diags: list[dict], *, title: str = "Rehearsal report") -
     for c, m in sorted(stats["causes"].items(), key=lambda kv: -kv[1]):
         L.append(f"- {m}× {c}")
     L.append("")
-    L.append("## The eight target crossings (walking from the first tail; target Gauss code `" + "1O 2U 3O 4U 5O 6U 2O 7U 4O 8U 6O 1U 7O 3U 8O 5U" + "`)")
+    L.append(f"## The {len(stats['crossings'])} target crossings (walking from the first tail; target Gauss code `{stats.get('target_code', '')}`)")
     L.append("| crossing | OK | FLIPPED (over/under wrong) | MISSING | flipped crossings were made during |")
     L.append("|---|---|---|---|---|")
     for cid, c in stats["crossings"].items():
@@ -359,7 +367,18 @@ def report(stats: dict, diags: list[dict], *, title: str = "Rehearsal report") -
 
 
 def analyze(results_dir: str | Path, *, title: str = "Rehearsal report") -> tuple[dict, list[dict], str]:
+    global TARGET_CODE_STR
     tc = target_crossings()
+    TARGET_CODE_STR = "1O 2U 3O 4U 5O 6U 2O 7U 4O 8U 6O 1U 7O 3U 8O 5U"
+    for d in sorted(Path(results_dir).iterdir()):
+        rp = d / "result.json"
+        if rp.exists():
+            v = json.loads(rp.read_text()).get("variant") or {}
+            if v.get("knot", "coin") != "coin":
+                from knotlab import task as _task
+
+                TARGET_CODE_STR = diagram.code_str(_task.target_code(v["knot"]))
+            break
     eps = [load_episode(d) for d in sorted(Path(results_dir).iterdir()) if d.is_dir()]
     diags = []
     for ep in eps:
@@ -370,7 +389,8 @@ def analyze(results_dir: str | Path, *, title: str = "Rehearsal report") -> tupl
                           "crossings": [], "extra_crossings": 0, "cause": "no result (sandbox or runner failure)", "error_node": None,
                           "error_calls": [], "regressions": [], "spans": [], "variant": {}})
             continue
-        diags.append(diagnose(ep, tc))
+        v = (ep.get("result") or {}).get("variant") or {}
+        diags.append(diagnose(ep, target_crossings(variant=v) if v.get("knot", "coin") != "coin" else tc))
     stats = aggregate(diags)
     return stats, diags, report(stats, diags, title=title)
 

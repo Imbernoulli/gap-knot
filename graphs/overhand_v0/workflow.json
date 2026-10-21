@@ -1,0 +1,361 @@
+{
+ "version": 3,
+ "meta": {
+  "name": "overhand_v0",
+  "description": "Tie an overhand knot with two hands: lay a loop, lay the other half over it, thread its end under the loop while the other hand lifts the strand, lay the tail, pull both tails, verify."
+ },
+ "nodes": {
+  "loop": {
+   "type": "subgraph",
+   "ref": "loop_sg"
+  },
+  "over": {
+   "type": "subgraph",
+   "ref": "over_sg"
+  },
+  "thread": {
+   "type": "subgraph",
+   "ref": "thread_sg"
+  },
+  "tail": {
+   "type": "subgraph",
+   "ref": "tail_sg"
+  },
+  "pull": {
+   "type": "subgraph",
+   "ref": "pull_sg"
+  },
+  "verify": {
+   "type": "subgraph",
+   "ref": "verify_sg"
+  },
+  "done": {
+   "type": "end",
+   "status": "success"
+  },
+  "abort": {
+   "type": "end",
+   "status": "failure",
+   "recovery": [
+    {
+     "tool": "robot.open_gripper",
+     "inputs": {
+      "arm_id": 0
+     }
+    },
+    {
+     "tool": "robot.open_gripper",
+     "inputs": {
+      "arm_id": 1
+     }
+    }
+   ]
+  }
+ },
+ "edges": [
+  [
+   "START",
+   "loop"
+  ]
+ ],
+ "conditional_edges": {
+  "loop": {
+   "router_field": "exit",
+   "mapping": {
+    "laid": "over",
+    "failed": "abort"
+   }
+  },
+  "over": {
+   "router_field": "exit",
+   "mapping": {
+    "laid": "thread",
+    "failed": "abort"
+   }
+  },
+  "thread": {
+   "router_field": "exit",
+   "mapping": {
+    "threaded": "tail",
+    "missed": "tail",
+    "failed": "abort"
+   }
+  },
+  "tail": {
+   "router_field": "exit",
+   "mapping": {
+    "laid": "pull",
+    "failed": "abort"
+   }
+  },
+  "pull": {
+   "router_field": "exit",
+   "mapping": {
+    "pulled": "verify",
+    "failed": "abort"
+   }
+  },
+  "verify": {
+   "router_field": "exit",
+   "mapping": {
+    "tied": "done",
+    "untied": "abort",
+    "failed": "abort"
+   }
+  }
+ },
+ "subgraphs": {
+  "loop_sg": {
+   "skill": "generic",
+   "inputs": {},
+   "outputs": {},
+   "nodes": {
+    "act": {
+     "type": "script",
+     "script": "scripts/ov_loop.py"
+    },
+    "laid": {
+     "type": "noop"
+    }
+   },
+   "edges": [
+    [
+     "START",
+     "act"
+    ],
+    [
+     "laid",
+     "END"
+    ]
+   ],
+   "conditional_edges": {
+    "act": {
+     "router_field": "route",
+     "mapping": {
+      "laid": "laid"
+     }
+    }
+   },
+   "exit": {
+    "router_field": null,
+    "success_values": [
+     "laid"
+    ]
+   },
+   "on_error": "failed"
+  },
+  "over_sg": {
+   "skill": "generic",
+   "inputs": {},
+   "outputs": {},
+   "nodes": {
+    "act": {
+     "type": "script",
+     "script": "scripts/ov_over.py"
+    },
+    "laid": {
+     "type": "noop"
+    }
+   },
+   "edges": [
+    [
+     "START",
+     "act"
+    ],
+    [
+     "laid",
+     "END"
+    ]
+   ],
+   "conditional_edges": {
+    "act": {
+     "router_field": "route",
+     "mapping": {
+      "laid": "laid"
+     }
+    }
+   },
+   "exit": {
+    "router_field": null,
+    "success_values": [
+     "laid"
+    ]
+   },
+   "on_error": "failed"
+  },
+  "thread_sg": {
+   "skill": "generic",
+   "inputs": {},
+   "outputs": {},
+   "nodes": {
+    "act": {
+     "type": "script",
+     "script": "scripts/ov_thread.py"
+    },
+    "threaded": {
+     "type": "noop"
+    },
+    "missed": {
+     "type": "noop"
+    }
+   },
+   "edges": [
+    [
+     "START",
+     "act"
+    ],
+    [
+     "threaded",
+     "END"
+    ],
+    [
+     "missed",
+     "END"
+    ]
+   ],
+   "conditional_edges": {
+    "act": {
+     "router_field": "route",
+     "mapping": {
+      "threaded": "threaded",
+      "missed": "missed"
+     }
+    }
+   },
+   "exit": {
+    "router_field": null,
+    "success_values": [
+     "threaded",
+     "missed"
+    ]
+   },
+   "on_error": "failed"
+  },
+  "tail_sg": {
+   "skill": "generic",
+   "inputs": {},
+   "outputs": {},
+   "nodes": {
+    "act": {
+     "type": "script",
+     "script": "scripts/ov_tail.py"
+    },
+    "laid": {
+     "type": "noop"
+    }
+   },
+   "edges": [
+    [
+     "START",
+     "act"
+    ],
+    [
+     "laid",
+     "END"
+    ]
+   ],
+   "conditional_edges": {
+    "act": {
+     "router_field": "route",
+     "mapping": {
+      "laid": "laid"
+     }
+    }
+   },
+   "exit": {
+    "router_field": null,
+    "success_values": [
+     "laid"
+    ]
+   },
+   "on_error": "failed"
+  },
+  "pull_sg": {
+   "skill": "generic",
+   "inputs": {},
+   "outputs": {},
+   "nodes": {
+    "act": {
+     "type": "script",
+     "script": "scripts/ov_pull.py"
+    },
+    "pulled": {
+     "type": "noop"
+    }
+   },
+   "edges": [
+    [
+     "START",
+     "act"
+    ],
+    [
+     "pulled",
+     "END"
+    ]
+   ],
+   "conditional_edges": {
+    "act": {
+     "router_field": "route",
+     "mapping": {
+      "pulled": "pulled"
+     }
+    }
+   },
+   "exit": {
+    "router_field": null,
+    "success_values": [
+     "pulled"
+    ]
+   },
+   "on_error": "failed"
+  },
+  "verify_sg": {
+   "skill": "generic",
+   "inputs": {},
+   "outputs": {},
+   "nodes": {
+    "act": {
+     "type": "script",
+     "script": "scripts/ov_verify.py"
+    },
+    "tied": {
+     "type": "noop"
+    },
+    "untied": {
+     "type": "noop"
+    }
+   },
+   "edges": [
+    [
+     "START",
+     "act"
+    ],
+    [
+     "tied",
+     "END"
+    ],
+    [
+     "untied",
+     "END"
+    ]
+   ],
+   "conditional_edges": {
+    "act": {
+     "router_field": "route",
+     "mapping": {
+      "tied": "tied",
+      "untied": "untied"
+     }
+    }
+   },
+   "exit": {
+    "router_field": null,
+    "success_values": [
+     "tied",
+     "untied"
+    ]
+   },
+   "on_error": "failed"
+  }
+ }
+}

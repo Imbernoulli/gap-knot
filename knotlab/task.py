@@ -23,7 +23,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from knotlab import diagram, geometry
+from knotlab import diagram, geometry, overhand
 
 GRAPH_ROOT_DEFAULT = None
 
@@ -31,6 +31,7 @@ GRAPH_ROOT_DEFAULT = None
 @dataclass(frozen=True)
 class Variant:
     seed: int = 0
+    knot: str = "coin"  # "coin": the double coin knot (双钱结) on the pinned board; "overhand": the overhand knot (单结)
     # The rope.
     radius: float = 0.005
     young_modulus: float = 1.0e5  # [Pa]: a soft cord (the knot example's)
@@ -78,8 +79,39 @@ def _place(v: Variant, board_pts: np.ndarray) -> np.ndarray:
     return out
 
 
+def _layout_overhand(v: Variant) -> dict:
+    """The overhand knot: no pins; the rope straight along y with its ends bent toward the robot, the knot to tie
+    toward the robot of that line. ``board_x``/``board_y`` place the line's middle (bench frame), ``board_yaw`` turns it."""
+    rng = np.random.default_rng(v.seed)
+    at = (0.0, 0.0)
+    start = overhand.start(v.radius, at)
+    tgt = overhand.target(v.radius, at)
+    if v.lay_noise > 0:
+        s = diagram.arc_length(start)
+        wiggle = v.lay_noise * np.sin(2 * math.pi * s / rng.uniform(0.2, 0.4) + rng.uniform(0, 2 * math.pi))
+        tangent = np.gradient(start[:, :2], axis=0)
+        tangent /= np.linalg.norm(tangent, axis=1, keepdims=True)
+        normal = np.stack([-tangent[:, 1], tangent[:, 0]], axis=1)
+        start = start.copy()
+        start[:, :2] += wiggle[:, None] * normal
+        s2 = diagram.arc_length(start)
+        s_new = np.linspace(0.0, s2[-1], len(start))
+        start = np.stack([np.interp(s_new, s2, start[:, k]) for k in range(3)], axis=1)
+    c, sn = math.cos(v.board_yaw), math.sin(v.board_yaw)
+    R = np.array([[c, -sn], [sn, c]])
+
+    def place(p: np.ndarray) -> np.ndarray:
+        q = np.asarray(p, dtype=np.float64).copy()
+        q[:, :2] = q[:, :2] @ R.T + np.array([v.board_x, v.board_y])
+        return q
+
+    return {"start": place(start), "target": place(tgt), "pins": {}, "board_centre": np.array([v.board_x, v.board_y, 0.0])}
+
+
 def layout(v: Variant) -> dict:
     """Everything this variant places, in the bench frame: rope start nodes, target, pins."""
+    if v.knot == "overhand":
+        return _layout_overhand(v)
     rng = np.random.default_rng(v.seed)
     spec = knot_spec(v)
     start = geometry.start(spec, splay=v.splay, drop=v.drop, side=v.side, up=v.up, fold=v.fold)
@@ -111,24 +143,45 @@ def layout(v: Variant) -> dict:
 
 
 TARGET_CODE = diagram.gauss_code(geometry.target(geometry.KnotSpec()))
+TARGET_CODES = {"coin": TARGET_CODE, "overhand": diagram.gauss_code(overhand.target())}
 
 
-def score(points: np.ndarray, radius: float = 0.005) -> dict:
-    """How far the rope is from the tied knot: its code against the double coin's, and the knot's size."""
+def target_code(knot: str | None = None) -> list:
+    knot = knot or (CURRENT.get("variant").knot if CURRENT.get("variant") is not None else "coin")
+    return TARGET_CODES[knot]
+
+
+def score(points: np.ndarray, radius: float = 0.005, knot: str | None = None) -> dict:
+    """How far the rope is from the tied knot: its code against the target knot's, and the knot's size."""
+    tc = target_code(knot)
     code = diagram.gauss_code(points)
-    n = diagram.prefix_match(code, TARGET_CODE)
-    exact = code == TARGET_CODE
+    n = diagram.prefix_match(code, tc)
+    exact = code == tc
+    if (knot or (CURRENT.get("variant").knot if CURRENT.get("variant") is not None else "coin")) == "overhand":
+        exact = overhand.is_overhand(code)  # either handedness is an overhand knot
     found = diagram.crossings(points)
     xy = np.array([c.xy for c in found]) if found else np.zeros((0, 2))
     return {
         "code": diagram.code_str(code),
         "crossings": len(found),
         "prefix": n,
-        "progress": n / len(TARGET_CODE),
+        "progress": n / len(tc),
+        "knot_length": diagram_knot_length(points),
         "tied": bool(exact),
         "alternating": diagram.is_alternating(code),
         "knot_extent": float(np.ptp(xy, axis=0).max()) if len(xy) > 1 else 0.0,
     }
+
+
+def diagram_knot_length(points: np.ndarray) -> float:
+    """The rope between its first crossing and its last, along it [m]: what the knot ties up (0 with no crossing)."""
+    found = diagram.crossings(points)
+    if not found:
+        return 0.0
+    segs = [k for c in found for k in (c.i, c.j)]
+    p = np.asarray(points, dtype=np.float64)
+    lo, hi = min(segs), max(segs)
+    return float(np.linalg.norm(np.diff(p[lo : hi + 2], axis=0), axis=1).sum())
 
 
 _REGISTERED: set[str] = set()
@@ -140,6 +193,7 @@ def _register_measure() -> None:
 
     if "coin_progress" in _REGISTERED:
         return
+    # coin_progress scores whichever knot the current variant ties (the name predates the overhand knot).
 
     def coin_progress(positions: np.ndarray) -> float:
         return score(np.asarray(positions, dtype=np.float64))["progress"]
@@ -164,15 +218,24 @@ def _register_measure() -> None:
     _REGISTERED.add("coin_progress")
 
 
-def task_doc(max_steps: int = 6000) -> str:
+def task_doc(max_steps: int = 6000, knot: str = "coin") -> str:
     # $KNOTLAB_GOAL_HOLD lengthens the hold, so a rehearsal that starts tied (a dressing probe) is not
     # scored done on its first second.
     hold = float(os.environ.get("KNOTLAB_GOAL_HOLD", "1.0"))
+    if knot == "overhand":
+        name = "overhand_knot"
+        language = "tie an overhand knot in the cord lying on the board: make a loop, pass the end through it, and pull it tight"
+        fixtures = "(:fixtures board - knot_board)"
+    else:
+        name = "double_coin_knot"
+        language = ("tie a double coin knot: hang the cord's middle on the top pin, lay a lobe round each side pin, "
+                    "weave the tails over and under, and pull it even")
+        fixtures = "(:fixtures board - knot_board pin_top - knot_pin_top pin_left - knot_pin_left pin_right - knot_pin_right)"
     return f"""
-(define (problem double_coin_knot)
-  (:language tie a double coin knot: hang the cord's middle on the top pin, lay a lobe round each side pin, weave the tails over and under, and pull it even)
+(define (problem {name})
+  (:language {language})
   (:staging (:scene bench_075) (:embodiment yam_bimanual) (:physics knot_superdex@v1) (:max-steps {max_steps}))
-  (:fixtures board - knot_board pin_top - knot_pin_top pin_left - knot_pin_left pin_right - knot_pin_right)
+  {fixtures}
   (:objects rope - knot_rope)
   (:goal (once (hold-for {hold} (>= (coin_progress rope) 1.0)))))
 """
@@ -236,4 +299,4 @@ def build(v: Variant = NOMINAL, *, max_steps: int = 6000):
         color=(0.85, 0.15, 0.45),
     )
     reg(Rod.from_spec(rope, name="knot_rope"))
-    return bench.Env(bench.task(task_doc(max_steps)))
+    return bench.Env(bench.task(task_doc(max_steps, v.knot)))

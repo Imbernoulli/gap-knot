@@ -131,7 +131,7 @@ def rehearse_graph(graph: Path, out: Path, vs: list, backend: str, pool=None) ->
     if backend == "local":
         rehearse.run_local(graph, out, vs, slots=["0-31", "32-63", "64-95", "96-127"])
     else:
-        rehearse.run_daytona(graph, out, vs, pool=pool)
+        rehearse.run_daytona(graph, out, vs, pool=pool, max_steps=rehearse.MAX_STEPS)
     stats, diags, md = analyze(out, title=f"Rehearsal of {graph.parent.name}/{graph.name}")
     (out / "REPORT.md").write_text(md)
     (out / "REPORT.json").write_text(json.dumps({"stats": stats, "episodes": diags}, indent=1))
@@ -146,7 +146,7 @@ def rehearse_many(specs: list, vs: list, backend: str, pool=None) -> list[dict]:
         for graph, out in specs:
             rehearse.run_local(graph, out, vs, slots=["0-31", "32-63", "64-95", "96-127"])
     else:
-        rehearse.run_daytona_many(specs, vs, pool=pool)
+        rehearse.run_daytona_many(specs, vs, pool=pool, max_steps=rehearse.MAX_STEPS)
     stats = []
     for graph, out in specs:
         st, diags, md = analyze(out, title=f"Rehearsal of {out.parent.name}")
@@ -234,9 +234,14 @@ def main() -> None:
     ap.add_argument("--n-test", type=int, default=20)
     ap.add_argument("--generate-only", action="store_true")
     ap.add_argument("--prompts", default="", help="generation prompt variant, e.g. _simple")
+    ap.add_argument("--knot", default="coin", help="coin (double coin knot) or overhand")
+    ap.add_argument("--max-steps", type=int, default=0, help="per episode (0: the rehearsal default)")
     a = ap.parse_args()
     global PROMPT_SUFFIX
     PROMPT_SUFFIX = a.prompts
+    variants.KNOT = a.knot
+    if a.max_steps:
+        rehearse.MAX_STEPS = a.max_steps
     run = Path(a.run).resolve()
     run.mkdir(parents=True, exist_ok=True)
     hist_path = run / "history.json"
@@ -277,6 +282,10 @@ def main() -> None:
                 name = "abcdefgh"[k]
                 cd = itd / f"cand_{name}"
                 ws = codex_agent.prepare(cd / "ws", best)
+                if variants.KNOT == "overhand":  # the refiners read this task's brief, not the double coin's
+                    shutil.copy2(ROOT / "harness" / "docs" / "TASK_overhand.md", ws / "docs" / "TASK.md")
+                    if (ROOT / "harness" / "docs" / "img" / "overhand_start_and_target.png").exists():
+                        shutil.copy2(ROOT / "harness" / "docs" / "img" / "overhand_start_and_target.png", ws / "docs" / "img" / "start_and_target.png")
                 shutil.copy2(itd / "incumbent" / "REPORT.md", ws / "docs" / "REPORT.md")
                 shutil.copy2(run / "HISTORY.md", ws / "docs" / "HISTORY.md")
                 pics = evidence(itd / "incumbent", ws / "evidence", rep["episodes"])

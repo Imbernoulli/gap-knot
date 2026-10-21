@@ -42,11 +42,21 @@ def draw(ax, pts, lay, title, label_cross=False):
 
 
 if __name__ == "__main__":
+    knot = sys.argv[2] if len(sys.argv) > 2 else "coin"
     out = sys.argv[1] if len(sys.argv) > 1 else "harness/docs/img/start_and_target.png"
-    lay = task.layout(task.NOMINAL)
+    from harness import variants as _v
+    lay = task.layout(_v.nominal(knot))
     fig, axes = plt.subplots(1, 2, figsize=(17, 8))
-    draw(axes[0], lay["start"], lay, "START (nominal): the middle hung on pin_top; each half down, out, up the side and folded back, all inside reach")
-    draw(axes[1], lay["target"], lay, "TARGET: the double coin knot. Orange numbers = crossing ids. The upper strand is drawn on top.\nColour and the small numbers = arc length s from node 0.", label_cross=True)
+    if knot == "overhand":
+        import harness.analyze as _an
+        _an_tc = _an.target_crossings
+        _an.target_crossings = lambda *a, **k: _an_tc(variant=__import__("dataclasses").asdict(_v.nominal(knot)))
+        globals()["target_crossings"] = _an.target_crossings
+        draw(axes[0], lay["start"], lay, "START (nominal): the cord straight along y, both ends bent toward the robot")
+        draw(axes[1], lay["target"], lay, "TARGET: the overhand knot (trefoil). Orange numbers = crossing ids. The upper strand is drawn on top.", label_cross=True)
+    else:
+        draw(axes[0], lay["start"], lay, "START (nominal): the middle hung on pin_top; each half down, out, up the side and folded back, all inside reach")
+        draw(axes[1], lay["target"], lay, "TARGET: the double coin knot. Orange numbers = crossing ids. The upper strand is drawn on top.\nColour and the small numbers = arc length s from node 0.", label_cross=True)
     for ax in axes:
         ax.set_xlim(-0.27, 0.27); ax.set_ylim(0.32, 0.72)
     plt.tight_layout(); plt.savefig(out, dpi=90)

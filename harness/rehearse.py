@@ -128,10 +128,12 @@ def main() -> None:
     ap.add_argument("--backend", default="local")
     ap.add_argument("--slots", default="0-31,32-63,64-95,96-127")
     ap.add_argument("--max-steps", type=int, default=MAX_STEPS)
+    ap.add_argument("--knot", default="coin", help="coin (double coin knot) or overhand")
     a = ap.parse_args()
     from knotlab.task import NOMINAL
 
-    vs = [NOMINAL] if a.nominal else (variants.test(a.n) if a.test else variants.train(a.n, a.offset))
+    variants.KNOT = a.knot
+    vs = [variants.nominal()] if a.nominal else (variants.test(a.n) if a.test else variants.train(a.n, a.offset))
     graph, out = Path(a.graph).resolve(), Path(a.out).resolve()
     if a.backend == "local":
         r = run_local(graph, out, vs, slots=a.slots.split(","), max_steps=a.max_steps)
