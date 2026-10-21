@@ -45,7 +45,9 @@ class Variant:
     # How the rope starts.
     splay: float = 0.05  # the bight's width round the top pin [m]
     drop: float = 0.14  # how far each half runs down before turning out [m]
-    side: float = 0.17  # how far it then runs out sideways before hooking back up the board [m]
+    side: float = 0.15  # how far it then runs out sideways [m]
+    up: float = 0.16  # then back up the side of the board [m]
+    fold: float = 0.07  # then in, and back down that corridor with the rest [m]
     lay_noise: float = 0.0  # lateral wiggle laid onto the start [m]
     start_shape: str = "omega"  # "omega": the video's start; "tied": the loose knot itself (to rehearse dressing)
 
@@ -80,7 +82,7 @@ def layout(v: Variant) -> dict:
     """Everything this variant places, in the bench frame: rope start nodes, target, pins."""
     rng = np.random.default_rng(v.seed)
     spec = knot_spec(v)
-    start = geometry.start(spec, splay=v.splay, drop=v.drop, side=v.side)
+    start = geometry.start(spec, splay=v.splay, drop=v.drop, side=v.side, up=v.up, fold=v.fold)
     if v.start_shape == "tied":
         start = geometry.target(spec)
     if v.lay_noise > 0:
@@ -93,6 +95,10 @@ def layout(v: Variant) -> dict:
         mid = np.abs(s - s[-1] / 2) > 0.12  # leave the bight on its pin
         start = start.copy()
         start[:, :2] += (wiggle * far * mid)[:, None] * normal
+        # Even spacing again (the wiggle stretched some elements and squeezed others), same node count.
+        s2 = diagram.arc_length(start)
+        s_new = np.linspace(0.0, s2[-1], len(start))
+        start = np.stack([np.interp(s_new, s2, start[:, k]) for k in range(3)], axis=1)
     pins = geometry.pins(spec)
     pins = {k: p + (rng.uniform(-1, 1, 2) * v.pin_jitter if v.pin_jitter else 0.0) for k, p in pins.items()}
     pin_bench = {k: _place(v, np.array([[*p, 0.0]]))[0] for k, p in pins.items()}

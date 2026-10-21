@@ -131,15 +131,20 @@ def start(
     *,
     splay: float = 0.05,
     drop: float = 0.14,
-    side: float = 0.17,
-    turn: float = 0.03,
+    side: float = 0.15,
+    up: float = 0.16,
+    fold: float = 0.07,
+    turn: float = 0.025,
 ) -> np.ndarray:
     """The rope as the video starts it: its middle hung round the top pin, both halves down the board.
 
     The video's halves run straight down off the board; the YAM pair reaches a
-    band only ~20 cm deep and 40 cm wide, so after ``drop`` each half turns out
-    sideways for ``side`` and then hooks back up the side of the board, the rest
-    of its length lying there, corners rounded on ``turn``.
+    band only ~20 cm deep and 40 cm wide, so the whole cord is laid inside it,
+    clear of where the knot goes: after ``drop`` each half turns out sideways for
+    ``side``, runs back up the side of the board, folds in by ``fold`` and comes
+    back down that corridor, stopping 4 cm above where it started out; the run up
+    is solved so the half's length comes out exact (``up`` is the first guess).
+    Corners are rounded on ``turn``.
 
     Same length and element count as :func:`target`, so node k is the same point of
     rope in both.
@@ -148,22 +153,43 @@ def start(
     length = float(arc_length(goal)[-1])
     top = pins(spec)["top"]
     r = 0.5 * splay
-    halves = []
-    for sign in (+1.0, -1.0):
-        # From the bight's apex over the pin, round to the side, down, out, and up the side far enough.
-        apex = top + np.array([0.0, r])
+    gap = 0.04  # the folded-back run stops this far above the bottom run
+
+    def half(sign: float, up_: float) -> np.ndarray:
         phi = np.linspace(0.5 * math.pi, 0.5 * math.pi - sign * 0.5 * math.pi, 12)
         arc = top + np.stack([r * np.cos(phi), r * np.sin(phi)], axis=1)
+        apex = top + np.array([0.0, r])
         corner1 = top + np.array([sign * r, -drop])
         corner2 = corner1 + np.array([sign * side, 0.0])
-        far = corner2 + np.array([0.0, 1.0])  # long enough; trimmed to the half-length below
-        path = _fillet(np.vstack([arc[:-1], arc[-1], corner1, corner2, far]), turn)
-        path = np.vstack([apex[None], path[1:]])
-        s = arc_length(np.hstack([path, np.zeros((len(path), 1))]))
-        keep = s <= 0.5 * length
+        corner3 = corner2 + np.array([0.0, up_])
+        corner4 = corner3 + np.array([-sign * fold, 0.0])
+        end = np.array([corner4[0], corner1[1] + gap])
+        path = _fillet(np.vstack([arc[:-1], arc[-1], corner1, corner2, corner3, corner4, end]), turn)
+        return np.vstack([apex[None], path[1:]])
+
+    def plen(p: np.ndarray) -> float:
+        return float(arc_length(np.hstack([p, np.zeros((len(p), 1))]))[-1])
+
+    halves = []
+    for sign in (+1.0, -1.0):
+        # The run up the side is what is free: choose it so the half's length is exactly half the rope's
+        # (its path length grows two for one with it, up and back down).
+        u0, u1 = up, up + 0.05
+        l0, l1 = plen(half(sign, u0)), plen(half(sign, u1))
+        u = u0 + (0.5 * length - l0) * (u1 - u0) / (l1 - l0)
+        for _ in range(2):
+            lu = plen(half(sign, u))
+            u += (0.5 * length - lu) / 2.0
+        path = half(sign, u)
+        s_ = arc_length(np.hstack([path, np.zeros((len(path), 1))]))
+        keep = s_ <= 0.5 * length
         cut = int(np.argmax(~keep)) if (~keep).any() else len(path)
-        end = path[cut - 1] + (0.5 * length - s[cut - 1]) * (path[cut] - path[cut - 1]) / max(s[cut] - s[cut - 1], 1e-9)
-        halves.append(np.vstack([path[:cut], end[None]]))
+        if cut < len(path):
+            end = path[cut - 1] + (0.5 * length - s_[cut - 1]) * (path[cut] - path[cut - 1]) / max(s_[cut] - s_[cut - 1], 1e-9)
+            path = np.vstack([path[:cut], end[None]])
+        halves.append(path)
+    plus, minus = halves
+    path = np.vstack([plus[::-1], minus[1:]])
     # Node 0 is the target's first tail; the target's first tail is at +X, so the +X half runs first, end to apex.
     plus, minus = halves
     path = np.vstack([plus[::-1], minus[1:]])

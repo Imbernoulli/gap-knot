@@ -45,7 +45,7 @@ if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else "harness/docs/img/start_and_target.png"
     lay = task.layout(task.NOMINAL)
     fig, axes = plt.subplots(1, 2, figsize=(17, 8))
-    draw(axes[0], lay["start"], lay, "START (nominal): the middle hung on pin_top, each half down, out, and up the side")
+    draw(axes[0], lay["start"], lay, "START (nominal): the middle hung on pin_top; each half down, out, up the side and folded back, all inside reach")
     draw(axes[1], lay["target"], lay, "TARGET: the double coin knot. Orange numbers = crossing ids. The upper strand is drawn on top.\nColour and the small numbers = arc length s from node 0.", label_cross=True)
     for ax in axes:
         ax.set_xlim(-0.27, 0.27); ax.set_ylim(0.32, 0.72)
