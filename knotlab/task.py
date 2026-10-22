@@ -170,7 +170,9 @@ def score(points: np.ndarray, radius: float = 0.005, knot: str | None = None) ->
         v_ = CURRENT.get("variant")
         if v_ is not None and v_.start_shape == "loose_knot" and CURRENT.get("L0"):
             # Pulling it tight: still an overhand knot, with its rope drawn up to a fraction of the loose knot's.
-            exact = exact and diagram_knot_length(points) <= TIGHT_FRACTION * CURRENT["L0"]
+            # ...and lying on the table again: a knot the hands still hold up in the air does not count.
+            resting = float(np.asarray(points)[:, 2].max()) <= REST_HEIGHT
+            exact = exact and resting and diagram_knot_length(points) <= TIGHT_FRACTION * CURRENT["L0"]
     found = diagram.crossings(points)
     xy = np.array([c.xy for c in found]) if found else np.zeros((0, 2))
     return {
@@ -197,6 +199,9 @@ def diagram_knot_length(points: np.ndarray) -> float:
 
 
 TIGHT_FRACTION = float(os.environ.get("KNOTLAB_TIGHT", "0.75"))
+REST_HEIGHT = 0.03
+"""Every node of a knot that counts as pulled tight lies within this height of the bench [m] (a resting 10 mm cord's
+crossings reach ~20 mm): it has been set down and let go."""
 """A pulled-tight overhand knot holds at most this fraction of the loose knot's rope between its crossings."""
 
 _REGISTERED: set[str] = set()
