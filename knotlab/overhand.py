@@ -59,9 +59,9 @@ def trefoil(*, at=(0.0, 0.0), size=0.05, radius=0.005, tail=0.15, spacing=0.008,
 SIZE, TAIL = 0.15, 0.05  # loops wide enough for the YAM's fingers to thread (RoboSimStudio's example ties 0.10)
 
 
-def target(radius: float = 0.005, at=(-0.10, 0.0)) -> np.ndarray:
+def target(radius: float = 0.005, at=(-0.10, 0.0), size: float = 0.0, tail: float = 0.0) -> np.ndarray:
     """The tied knot in the bench frame: tails along y on the line x = at[0], the knot toward the robot of it."""
-    return trefoil(at=at, size=SIZE, radius=radius, tail=TAIL, spacing=0.008)
+    return trefoil(at=at, size=size or SIZE, radius=radius, tail=tail or TAIL, spacing=0.008)
 
 
 def start(radius: float = 0.005, at=(-0.10, 0.0), *, half_run: float = 0.20) -> np.ndarray:

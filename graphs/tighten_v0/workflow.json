@@ -1,0 +1,171 @@
+{
+ "version": 3,
+ "meta": {
+  "name": "tighten_v0",
+  "description": "Pull a loose overhand knot tight with two hands, hand over hand, keeping it an overhand knot."
+ },
+ "nodes": {
+  "pull": {
+   "type": "subgraph",
+   "ref": "pull_sg"
+  },
+  "verify": {
+   "type": "subgraph",
+   "ref": "verify_sg"
+  },
+  "done": {
+   "type": "end",
+   "status": "success"
+  },
+  "abort": {
+   "type": "end",
+   "status": "failure",
+   "recovery": [
+    {
+     "tool": "robot.open_gripper",
+     "inputs": {
+      "arm_id": 0
+     }
+    },
+    {
+     "tool": "robot.open_gripper",
+     "inputs": {
+      "arm_id": 1
+     }
+    }
+   ]
+  }
+ },
+ "edges": [
+  [
+   "START",
+   "pull"
+  ]
+ ],
+ "conditional_edges": {
+  "pull": {
+   "router_field": "exit",
+   "mapping": {
+    "tight": "verify",
+    "pulled": "verify",
+    "lost": "verify",
+    "failed": "abort"
+   }
+  },
+  "verify": {
+   "router_field": "exit",
+   "mapping": {
+    "tight": "done",
+    "loose": "abort",
+    "failed": "abort"
+   }
+  }
+ },
+ "subgraphs": {
+  "pull_sg": {
+   "skill": "generic",
+   "inputs": {},
+   "outputs": {},
+   "nodes": {
+    "act": {
+     "type": "script",
+     "script": "scripts/tg_pull.py"
+    },
+    "tight": {
+     "type": "noop"
+    },
+    "pulled": {
+     "type": "noop"
+    },
+    "lost": {
+     "type": "noop"
+    }
+   },
+   "edges": [
+    [
+     "START",
+     "act"
+    ],
+    [
+     "tight",
+     "END"
+    ],
+    [
+     "pulled",
+     "END"
+    ],
+    [
+     "lost",
+     "END"
+    ]
+   ],
+   "conditional_edges": {
+    "act": {
+     "router_field": "route",
+     "mapping": {
+      "tight": "tight",
+      "pulled": "pulled",
+      "lost": "lost"
+     }
+    }
+   },
+   "exit": {
+    "router_field": null,
+    "success_values": [
+     "tight",
+     "pulled",
+     "lost"
+    ]
+   },
+   "on_error": "failed"
+  },
+  "verify_sg": {
+   "skill": "generic",
+   "inputs": {},
+   "outputs": {},
+   "nodes": {
+    "act": {
+     "type": "script",
+     "script": "scripts/tg_verify.py"
+    },
+    "tight": {
+     "type": "noop"
+    },
+    "loose": {
+     "type": "noop"
+    }
+   },
+   "edges": [
+    [
+     "START",
+     "act"
+    ],
+    [
+     "tight",
+     "END"
+    ],
+    [
+     "loose",
+     "END"
+    ]
+   ],
+   "conditional_edges": {
+    "act": {
+     "router_field": "route",
+     "mapping": {
+      "tight": "tight",
+      "loose": "loose"
+     }
+    }
+   },
+   "exit": {
+    "router_field": null,
+    "success_values": [
+     "tight",
+     "loose"
+    ]
+   },
+   "on_error": "failed"
+  }
+ }
+}

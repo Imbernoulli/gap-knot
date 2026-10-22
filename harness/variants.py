@@ -5,6 +5,8 @@ candidate in an iteration sees the same instances). Test variants are held out a
 """
 from __future__ import annotations
 
+import dataclasses
+
 import numpy as np
 
 from knotlab.task import Variant
@@ -44,6 +46,9 @@ KNOT = "coin"  # which task the samplers draw instances of; the loop sets it
 def sample(seed: int, knot: str | None = None) -> Variant:
     knot = knot or KNOT
     rng = np.random.default_rng(10_000 + seed)
+    if knot == "overhand_tighten":  # the clip's step 3: pull a loose overhand knot tight
+        v = sample(seed, "overhand")
+        return dataclasses.replace(v, start_shape="loose_knot", knot_size=float(rng.uniform(0.13, 0.17)), lay_noise=0.0)
     kw = {"knot": knot}
     if knot == "overhand":
         kw["board_x"] = -0.07
@@ -62,6 +67,8 @@ def test(n: int) -> list[Variant]:
 
 def nominal(knot: str | None = None) -> Variant:
     knot = knot or KNOT
+    if knot == "overhand_tighten":
+        return Variant(knot="overhand", board_x=-0.07, young_modulus=2.0e4, start_shape="loose_knot", knot_size=0.15)
     return Variant(knot=knot, board_x=-0.07, young_modulus=2.0e4) if knot == "overhand" else Variant()
 
 

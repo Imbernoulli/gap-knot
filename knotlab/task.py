@@ -51,6 +51,7 @@ class Variant:
     fold: float = 0.07  # then in, and back down that corridor with the rest [m]
     lay_noise: float = 0.0  # lateral wiggle laid onto the start [m]
     start_shape: str = "omega"  # "omega": the video's start; "tied": the loose knot itself (to rehearse dressing)
+    knot_size: float = 0.0  # overhand "loose_knot" start: the loose knot's size [m] (0: the reference's)
 
     def to_json(self) -> str:
         return json.dumps(dataclasses.asdict(self))
@@ -86,11 +87,14 @@ def _layout_overhand(v: Variant) -> dict:
     at = (0.0, 0.0)
     start = overhand.start(v.radius, at)
     tgt = overhand.target(v.radius, at)
+    if v.start_shape == "loose_knot":  # the clip's step 3: a loose overhand knot to pull tight (tails 12 cm to take)
+        tgt = overhand.target(v.radius, at, size=v.knot_size or overhand.SIZE, tail=0.12)
+        start = tgt.copy()
     if v.start_shape == "pre_thread":  # the under-crossing segment rehearsed alone (knotlab.thread_lab)
         from knotlab import thread_lab
 
         start = thread_lab.pre_thread(tgt, v.radius)
-    if v.lay_noise > 0 and v.start_shape != "pre_thread":
+    if v.lay_noise > 0 and v.start_shape not in ("pre_thread", "loose_knot"):
         s = diagram.arc_length(start)
         wiggle = v.lay_noise * np.sin(2 * math.pi * s / rng.uniform(0.2, 0.4) + rng.uniform(0, 2 * math.pi))
         tangent = np.gradient(start[:, :2], axis=0)
@@ -163,6 +167,10 @@ def score(points: np.ndarray, radius: float = 0.005, knot: str | None = None) ->
     exact = code == tc
     if (knot or (CURRENT.get("variant").knot if CURRENT.get("variant") is not None else "coin")) == "overhand":
         exact = overhand.is_overhand(code)  # either handedness is an overhand knot
+        v_ = CURRENT.get("variant")
+        if v_ is not None and v_.start_shape == "loose_knot" and CURRENT.get("L0"):
+            # Pulling it tight: still an overhand knot, with its rope drawn up to a fraction of the loose knot's.
+            exact = exact and diagram_knot_length(points) <= TIGHT_FRACTION * CURRENT["L0"]
     found = diagram.crossings(points)
     xy = np.array([c.xy for c in found]) if found else np.zeros((0, 2))
     return {
@@ -187,6 +195,9 @@ def diagram_knot_length(points: np.ndarray) -> float:
     lo, hi = min(segs), max(segs)
     return float(np.linalg.norm(np.diff(p[lo : hi + 2], axis=0), axis=1).sum())
 
+
+TIGHT_FRACTION = float(os.environ.get("KNOTLAB_TIGHT", "0.6"))
+"""A pulled-tight overhand knot holds at most this fraction of the loose knot's rope between its crossings."""
 
 _REGISTERED: set[str] = set()
 
@@ -264,7 +275,7 @@ def build(v: Variant = NOMINAL, *, max_steps: int = 6000):
         bench.register_arrangement("knot_superdex@v1", physics)
     lay = layout(v)
     CURRENT.clear()
-    CURRENT.update(variant=v, layout=lay)
+    CURRENT.update(variant=v, layout=lay, L0=diagram_knot_length(lay["start"]))
     bx, by = float(v.board_x), float(v.board_y)
 
     def reg(record) -> None:
