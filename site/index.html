@@ -1,0 +1,385 @@
+<title>gap-knot 绳结实验</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+/* Layout: a single lab-report column (~70ch prose) with full-width figure rows; results first, method after, the unsolved tasks last. */
+:root {
+  --bg: #f4f5f8;
+  --surface: #ffffff;
+  --ink: #14161d;
+  --muted: #586074;
+  --line: #dde1ea;
+  --accent: #2b4aa6;          /* the Howcast rope's indigo */
+  --accent-soft: #e6ebf8;
+  --ok: #17784a;  --ok-soft: #e2f3ea;
+  --warn: #9a6400; --warn-soft: #fbf0d9;
+  --bad: #ab3434; --bad-soft: #f8e4e3;
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a;
+  --grid: #e7eaf0;
+  --display: "Noto Serif SC", "Songti SC", "STSong", serif;
+  --body: "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1117; --surface: #171a23; --ink: #e9ebf1; --muted: #9ba3b6; --line: #2a2f3c;
+    --accent: #8aa4f0; --accent-soft: #1d2540;
+    --ok: #4fc58c; --ok-soft: #12291f; --warn: #e2ad45; --warn-soft: #2b2312; --bad: #f08079; --bad-soft: #2e1818;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --grid: #232836;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1117; --surface: #171a23; --ink: #e9ebf1; --muted: #9ba3b6; --line: #2a2f3c;
+  --accent: #8aa4f0; --accent-soft: #1d2540;
+  --ok: #4fc58c; --ok-soft: #12291f; --warn: #e2ad45; --warn-soft: #2b2312; --bad: #f08079; --bad-soft: #2e1818;
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --grid: #232836;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.7;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 72px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+.prose { max-width: 70ch; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.3; margin: 0; }
+h1 { font-size: clamp(30px, 5vw, 44px); letter-spacing: 0.01em; }
+h2 { font-size: clamp(22px, 3.2vw, 28px); }
+h3 { font-size: 18px; font-family: var(--body); font-weight: 600; }
+p { margin: 0; }
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible, video:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+code, .mono { font-family: var(--mono); font-size: 0.88em; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+section { display: flex; flex-direction: column; gap: 20px; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.lead { font-size: 18px; color: var(--ink); max-width: 68ch; }
+.muted { color: var(--muted); }
+
+/* header */
+header { display: flex; flex-direction: column; gap: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: var(--muted); }
+.meta a { font-family: var(--mono); font-size: 13px; }
+
+/* the three tasks at a glance */
+.tasks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.task { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.task h3 { font-size: 16px; }
+.task .big { font-family: var(--mono); font-size: 26px; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.task p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+.pill { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; padding: 2px 10px; border-radius: 999px; }
+.pill svg { width: 12px; height: 12px; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+
+/* figures */
+figure { margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+figure img, figure video { width: 100%; max-width: 100%; height: auto; display: block; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+figcaption { font-size: 13.5px; color: var(--muted); line-height: 1.55; }
+figcaption b { color: var(--ink); font-weight: 600; }
+.row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+
+/* tables */
+.tablebox { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; font-size: 12.5px; color: var(--muted); letter-spacing: 0.02em; background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--mono); white-space: nowrap; }
+tr.accepted td { background: var(--accent-soft); }
+
+/* gauss code chips */
+.gauss { font-family: var(--mono); font-size: 13px; background: var(--accent-soft); color: var(--accent); padding: 1px 8px; border-radius: 6px; white-space: nowrap; }
+
+/* chart */
+.charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 16px 10px; display: flex; flex-direction: column; gap: 8px; min-width: 0; position: relative; }
+.chart h3 { font-size: 15px; }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.chart .val { fill: var(--ink); font-size: 11.5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 12.5px; line-height: 1.45; padding: 7px 10px; border-radius: 6px; max-width: 240px; z-index: 5; }
+
+/* callouts */
+.note { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 14px 18px; font-size: 15px; max-width: 78ch; display: flex; flex-direction: column; gap: 8px; }
+.note.bad { border-left-color: var(--bad); }
+ol, ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
+pre.mermaid { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; overflow-x: auto; margin: 0; font-size: 14px; }
+
+@media (max-width: 760px) {
+  .tasks, .row2, .row3, .charts { grid-template-columns: minmax(0, 1fr); }
+  body { padding-block: 24px 48px; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">RoboSimStudio × Graph-as-Policy · YAM 双臂 · 进展报告 2026-10-21</span>
+  <h1>从网上的视频，到会自己练习打结的双臂机器人</h1>
+  <p class="lead">我们从视频里选打结任务，用 RoboSimStudio（RSS，Newton 物理）把场景和绳子重建进仿真。Codex 智能体按 Graph-as-Policy（GaP）的方式写出机器人计算图，在 Daytona 上用大量变化的任务实例并行排练，把失败定位到具体节点再改图，以此提高成功率、缩短用时。</p>
+  <div class="meta">
+    <span>代码：<a href="https://github.com/Imbernoulli/gap-knot">github.com/Imbernoulli/gap-knot</a>（私有）</span>
+    <span>视频：<a href="https://www.youtube.com/watch?v=dg6XrRY_FzI">双钱结 · Art Sprouts</a> · <a href="https://www.youtube.com/watch?v=SwdJ5op25SM">单结 · Howcast</a></span>
+  </div>
+</header>
+
+<section aria-labelledby="glance">
+  <h2 id="glance">三个任务，现在的状态</h2>
+  <div class="tasks">
+    <div class="task">
+      <span class="pill ok"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5 5 9l5-6" fill="none" stroke="currentColor" stroke-width="2"/></svg>自学习跑通</span>
+      <h3>单结收紧整形</h3>
+      <div class="big">0 → 9/10</div>
+      <p>视频第 3 步：双手把松单结拉紧。同一批 10 个实例上，baseline 0 成功；两轮自学习后 9/10，成功一次的用时从 80.6 s 降到 62.1 s。闭环仍在运行。</p>
+    </div>
+    <div class="task">
+      <span class="pill bad"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" fill="none" stroke="currentColor" stroke-width="2"/></svg>未做成</span>
+      <h3>从直绳打单结</h3>
+      <div class="big">0 / 16</div>
+      <p>5 轮自学习，留出测试 0/16。卡在"让绳从另一段下面穿过去"：单独排练这一步，可抓住的绳上 60 次只成 1 次。</p>
+    </div>
+    <div class="task">
+      <span class="pill bad"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" fill="none" stroke="currentColor" stroke-width="2"/></svg>未做成</span>
+      <h3>双钱结（中国结）</h3>
+      <div class="big">0 / 16</div>
+      <p>8 个交替压挑的交叉。耳翼绕不上针、两处下穿做不出来，图从没形成过交叉。</p>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="tighten">
+  <span class="eyebrow">结果 · 跑通的任务</span>
+  <h2 id="tighten">单结收紧：自学习把成功率从 0 提到 90%，再把用时缩短 23%</h2>
+  <p class="prose">起点是 Howcast 视频 33 s 处的松单结。成功要求两条同时满足：结里的绳长（第一个到最后一个交叉之间）收到起始的 75% 以下，且松手 1 秒后仍是三叶结（任一手性）。每轮在 10 个新抽样的实例上排练当前图，3 个 Codex refiner 读失败报告各改一版，所有候选在<em>同一批</em>实例上比较，好的才被接受。实例之间变化的有：摩擦 0.6–1.4、刚度 0.5–2×10⁵ Pa、结的大小 13–17 cm、摆放位置与朝向。</p>
+
+  <div class="charts" id="charts">
+    <div class="chart" id="c-rate">
+      <h3>成功率（同一批实例上配对比较）</h3>
+      <div class="legend" aria-hidden="true">
+        <span><i style="background:var(--series-1)"></i>G0 baseline</span>
+        <span><i style="background:var(--series-2)"></i>G1（第 0 轮接受）</span>
+        <span><i style="background:var(--series-3)"></i>G2（第 1 轮接受）</span>
+      </div>
+      <svg viewBox="0 0 440 230" role="img" aria-label="三批实例上各版本图的成功率柱状图"></svg>
+    </div>
+    <div class="chart" id="c-time">
+      <h3>成功局的平均用时（仿真秒）</h3>
+      <div class="legend" aria-hidden="true">
+        <span><i style="background:var(--series-2)"></i>G1</span>
+        <span><i style="background:var(--series-3)"></i>G2</span>
+      </div>
+      <svg viewBox="0 0 440 230" role="img" aria-label="各版本图成功局平均用时柱状图"></svg>
+    </div>
+  </div>
+
+  <div class="tablebox">
+    <table>
+      <thead><tr><th>实例批次</th><th>图</th><th>成功</th><th>成功局平均用时</th><th>来源</th></tr></thead>
+      <tbody>
+        <tr><td>第 0 轮（10 个）</td><td>G0 baseline</td><td class="num">0/10</td><td class="num">—</td><td>手写的 3 轮换手收紧</td></tr>
+        <tr class="accepted"><td>第 0 轮（同一批）</td><td>G1 = refiner c</td><td class="num">4/10</td><td class="num">70.4 s</td><td>按绳子实际高度去抓、最多 6 轮闭环收紧</td></tr>
+        <tr><td>第 1 轮（新 10 个）</td><td>G1</td><td class="num">9/10</td><td class="num">80.6 s</td><td>当前图在新实例上复测</td></tr>
+        <tr class="accepted"><td>第 1 轮（同一批）</td><td>G2 = refiner a</td><td class="num">9/10</td><td class="num">62.1 s</td><td>同样的成功率，更少更长的拉动</td></tr>
+        <tr><td>第 2 轮（新 10 个）</td><td>G2</td><td class="num">6/10</td><td class="num">70.9 s</td><td>批次差异不小；本轮候选还在排练</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="row2">
+    <figure>
+      <video src="media/tighten_baseline.mp4" controls muted playsinline preload="metadata" poster="media/tighten_baseline_keys.jpg" aria-label="baseline 图的俯视回放"></video>
+      <figcaption><b>G0 baseline，失败。</b>白色虚影是参考的松结。第 3 轮时左边尾巴还挂在半空（离桌约 6 cm），捏取仍降到桌面高度，从绳下合拢抓空，这一轮没拉成，结又松回去一些。最后停在起始绳长的 86%。</figcaption>
+    </figure>
+    <figure>
+      <video src="media/tighten_learned.mp4" controls muted playsinline preload="metadata" poster="media/tighten_learned_keys.jpg" aria-label="学习后图的俯视回放"></video>
+      <figcaption><b>G2，成功，40.9 s。</b>两手先把结提离桌面再向外拉，每轮根据结的当前长度决定下一轮拉多远，按绳子实际所在高度去抓。结收成紧实的小结，三叶结保持不变。</figcaption>
+    </figure>
+  </div>
+
+  <div class="note">
+    <h3>refiner 是怎么找到问题的</h3>
+    <p>它们只看排练记录，不能自己跑仿真。第 0 轮的 refiner 从调用记录里找到：第 3 轮 <code>rope.point</code> 报告左尾巴在 z = 0.8175 m，而捏取仍然下到 z = 0.7635 m 并超时，抬起后绳子反而往下走。于是改成在绳子实际所在的高度抓、抓空换点重抓、每轮按剩余松紧调整拉动距离。成功率超过 30% 后，分工规则自动把一个 refiner 切到"缩短用时"上，G2 就是这样来的。</p>
+  </div>
+</section>
+
+<section aria-labelledby="method">
+  <span class="eyebrow">方法</span>
+  <h2 id="method">从视频到自学习的整条管线</h2>
+  <pre class="mermaid">
+flowchart LR
+  V["网上视频<br/>Howcast / Art Sprouts"] --> R["RSS Real2Sim<br/>live 页面 + ./ctl compare/check"]
+  R --> T["任务 + 变化实例<br/>Newton · SuperDex 绳 · YAM 双臂"]
+  T --> O["Codex 编排 agent<br/>拆子图"]
+  O --> S["Codex skill agents<br/>并行实现子图"]
+  S --> G["GaP 计算图<br/>workflow.json + scripts"]
+  G --> D["Daytona 并行排练<br/>每局 1 台 2 vCPU 沙箱"]
+  D --> A["失败定位<br/>节点 · 交叉 · 绳形"]
+  A --> F["3 个 Codex refiner<br/>不同策略各改一版"]
+  F --> D
+  </pre>
+  <div class="row3">
+    <div class="stack"><h3>失败定位</h3><p class="muted">每局记录每个节点的工具调用和返回值、每 0.5 s 的绳子状态和交叉列表。分析器把失败归到具体子图和返回原因，把每个目标交叉标成"对 / 压挑反了 / 缺失"，并标出它是在哪个节点做出来的，再配一张俯视关键帧图给 refiner 看。</p></div>
+    <div class="stack"><h3>成功判据</h3><p class="muted">从上往下看绳子的投影，沿绳走一遍得到 Gauss 码，例如单结是 <span class="gauss">1U 2O 3U 1O 2U 3O</span>（或它的镜像）。双钱结是开口的 3 股 4 弯 Turk's head，要求 16 位码完全一致：<span class="gauss">1O 2U 3O 4U 5O 6U 2O 7U 4O 8U 6O 1U 7O 3U 8O 5U</span>。</p></div>
+    <div class="stack"><h3>算力</h3><p class="muted">Daytona 上做了预装 RSS 的快照，2 vCPU / 4 GiB 一台跑一局，SuperDex 线程数按 cgroup 配额设置（否则会在 2 核上起 22 个线程，慢 2–5 倍）。Codex 全部走号池 <code>coco</code>，最多 5 个并发。</p></div>
+  </div>
+</section>
+
+<section aria-labelledby="r2s">
+  <span class="eyebrow">RSS Real2Sim</span>
+  <h2 id="r2s">把 Howcast 视频重建进仿真</h2>
+  <p class="prose">由 Codex 在 RSS 的 live 页面上按它自带的 real-to-sim 方法完成：先对齐首帧，再用视频后面的时刻检验绳子的物理。每张图左边是 RSS 渲染，右边是视频原帧。</p>
+  <div class="row3">
+    <figure><img src="media/r2s_straight.jpg" alt="直绳：仿真渲染与视频帧并排" loading="lazy"><figcaption><b>16 s 直绳</b> · 轮廓 IoU 0.883 · 门槛 PASS</figcaption></figure>
+    <figure><img src="media/r2s_loop.jpg" alt="搭圈：仿真渲染与视频帧并排" loading="lazy"><figcaption><b>24 s 搭圈</b> · IoU 0.31（去掉手遮挡区域 0.42）</figcaption></figure>
+    <figure><img src="media/r2s_loose.jpg" alt="松结：仿真渲染与视频帧并排" loading="lazy"><figcaption><b>33 s 松结</b> · IoU 0.711 · 门槛 PASS</figcaption></figure>
+  </div>
+  <div class="note bad">
+    <p>标定出的绳径 10 mm 已采用。标定出的刚度 E = 2×10⁴ Pa 只对"静止形状"成立：在这个刚度下 YAM 的夹爪夹不住 SuperDex 绳（捏住拖 5 cm，绳头只动 4 mm；E = 1×10⁵ 时动 49 mm）。所以任务用回 RSS 自己打结示例的 1×10⁵。摩擦从视频里定不下来（0.0025–0.25 都能保持松结形状）。</p>
+  </div>
+</section>
+
+<section aria-labelledby="overhand">
+  <span class="eyebrow">未做成 · 从直绳打单结</span>
+  <h2 id="overhand">卡在一个动作：让绳从另一段下面穿过去</h2>
+  <div class="row2">
+    <figure><img src="media/storyboard_overhand.jpg" alt="Howcast 单结视频关键帧" loading="lazy"><figcaption><b>视频</b>：搭圈 → 绳头从圈下穿过 → 两手拉紧。</figcaption></figure>
+    <figure><img src="media/overhand_attempt_keys.jpg" alt="机器人打单结的一次尝试" loading="lazy"><figcaption><b>一次尝试</b>：形成了 3 个交叉，但码是 <span class="gauss">1O 2U 3U 3O 2O 1U</span>，圈套在圈里，不是单结。</figcaption></figure>
+  </div>
+  <p class="prose">任何结都至少需要一处"绳头从另一段下面穿过"。竖直朝下的平行夹爪本身是一根竖着的柱子，钻不过一段两头着地的绳；只能抬起那段绳，再把绳头推进去。我们把这一步单独拿出来，从"圈已搭好、绳头平放"的构造状态开始排练：</p>
+  <div class="tablebox">
+    <table>
+      <thead><tr><th>做法</th><th>做成下穿（6 个实例）</th><th>主要失败</th></tr></thead>
+      <tbody>
+        <tr><td>竖直推入：把那段绳抬成 6–8 cm 的拱，绳头推过去，另一侧重抓</td><td class="num">0/6, 0/6</td><td>拖动 26 cm 的尾巴把圈拖变形；在摩擦 1.0 下往外抽会拖动整个结</td></tr>
+        <tr><td>把那段绳抬起、跨到绳头另一侧再放下（4 种参数）</td><td class="num">0, 0, 0, 1 /6</td><td>抬绳时把旁边第一个交叉带跑</td></tr>
+        <tr><td>侧向夹爪 60° / 75° 从拱下钻过</td><td class="num">0/6, 0/6</td><td>第一个交叉在抬绳时被带跑；75° 曾有一局得到完整三叶结</td></tr>
+        <tr><td>仿人手：捏住第一个交叉托高 1.5–2.5 cm，绳头在旁边几厘米处塞入</td><td class="num">0/6, 0/6</td><td>托起的高度不够绳头钻入，绳头沿着绳面滑走</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="row2">
+    <figure><img src="media/demo_plan.jpg" alt="从视频提取的示范计划" loading="lazy"><figcaption><b>从视频提取的示范</b>：跟踪蓝绳中心线、交叉压挑和手的抓取。人并不把绳抬成拱：左手一直捏着第一个交叉（10 秒内移动不到 1 cm），右手在它旁边几厘米处把绳头塞进去马上拉出。</figcaption></figure>
+    <figure><img src="media/under_crossing_keys.jpg" alt="唯一一次做成下穿的排练" loading="lazy"><figcaption><b>60 次里唯一做成的一次</b>（"跨到另一侧"做法）。共同的失败原因：只要在第一个交叉旁抬绳或捏绳，第一个交叉就会被带走。下一步最有希望的是把那个交叉按住，用第三只手，或者双钱结视频里那样的大头针。</figcaption></figure>
+  </div>
+</section>
+
+<section aria-labelledby="coin">
+  <span class="eyebrow">未做成 · 双钱结</span>
+  <h2 id="coin">双钱结：8 个交替的交叉，两处下穿，耳翼要绕针</h2>
+  <div class="row3">
+    <figure><img src="media/storyboard_doublecoin.jpg" alt="Art Sprouts 双钱结视频关键帧" loading="lazy"><figcaption><b>视频</b>：泡沫板上用大头针，中点挂在上针，左右各绕一个耳翼，尾巴交替压挑编进去。</figcaption></figure>
+    <figure><img src="media/doublecoin_layout.jpg" alt="双钱结的起始与目标布局" loading="lazy"><figcaption><b>仿真</b>：按双臂实测可达范围缩放，16 cm 宽的结，起始时整根绳平铺在可达范围内。</figcaption></figure>
+    <figure><img src="media/lobe_liftover.jpg" alt="越过针的抬绳动作把耳翼绕上针" loading="lazy"><figcaption><b>一个发现</b>：贴桌逐点铺永远绕不过 5 cm 高的针；把耳翼顶点提到 8 cm 越过针再放下，能绕上 0.83–1.01 圈（目标 0.92）。</figcaption></figure>
+  </div>
+  <p class="prose">Codex 先后生成了两版图：一版 17 个子图、约 1.3 万行，自设的安全前置条件太多，几乎不动绳就放弃；一版 6 个子图、约 2200 行，同样卡在前几步。左半边的耳翼按目标手性必须从别的绳下面穿过，又回到了上面那个动作。</p>
+</section>
+
+<section aria-labelledby="lessons">
+  <span class="eyebrow">过程中的错误与修正</span>
+  <h2 id="lessons">做错过的事</h2>
+  <ul class="prose">
+    <li>一开始让 Codex agent 走了你个人的 ChatGPT 账号而不是号池，17 个并发把额度用完；之后全部改走 <code>coco</code>，最多 5 个并发。</li>
+    <li>前几个小时没有用 RSS 自带的 Real2Sim 流程，而是凭肉眼手写场景；后来按 RSS 的方法补做，但没有先验证标定出的刚度能不能抓住，导致一个下午的单结实验在夹不住的软绳上跑。刚度恢复后已全部重跑，结论不变。</li>
+    <li>捏取的"抓住了"判据阈值过高，把抓住判成没抓住，收紧任务因此一次都没拉。</li>
+    <li>任务的成功判据起初没读到"收紧"条件，松结一开局就被判成功；发现后立即修正重跑。</li>
+    <li>收紧时贴着桌面拉，只是把结拖着走（每轮收紧约 1%）；改成 RSS 测试和视频里的做法，先提起再拉，每轮约 8%。</li>
+  </ul>
+</section>
+
+<section aria-labelledby="next">
+  <span class="eyebrow">下一步</span>
+  <h2 id="next">接下来</h2>
+  <ul class="prose">
+    <li>收紧闭环跑完 8 轮，在 16 个留出实例上测最终成功率，并继续压缩用时。</li>
+    <li>为完整打结补一个能"按住交叉"的条件：双钱结视频里的大头针本身就是这个作用，可以作为工装加入任务，再单独排练下穿。</li>
+    <li>把侧向 75° 那次完整三叶结作为起点，在它的参数附近细扫。</li>
+  </ul>
+</section>
+
+</div>
+
+<div class="tip" id="tip" hidden></div>
+
+<script>
+(function () {
+  // Paired measurements: each instance batch, the graphs rehearsed on it.
+  var batches = [
+    { name: "第 0 轮实例", bars: [ { g: 0, label: "G0", ok: 0, n: 10, t: null }, { g: 1, label: "G1", ok: 4, n: 10, t: 70.4 } ] },
+    { name: "第 1 轮实例", bars: [ { g: 1, label: "G1", ok: 9, n: 10, t: 80.6 }, { g: 2, label: "G2", ok: 9, n: 10, t: 62.1 } ] },
+    { name: "第 2 轮实例", bars: [ { g: 2, label: "G2", ok: 6, n: 10, t: 70.9 } ] }
+  ];
+  var colors = ["var(--series-1)", "var(--series-2)", "var(--series-3)"];
+  var ns = "http://www.w3.org/2000/svg";
+  var tip = document.getElementById("tip");
+
+  function el(tag, attrs, parent) {
+    var e = document.createElementNS(ns, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function showTip(card, evt, html) {
+    var r = card.getBoundingClientRect();
+    tip.innerHTML = html;
+    tip.hidden = false;
+    card.appendChild(tip);
+    var x = evt.clientX - r.left + 12, y = evt.clientY - r.top - 10;
+    var w = tip.offsetWidth;
+    if (x + w > r.width - 4) x = Math.max(4, evt.clientX - r.left - w - 12);
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  function hideTip() { tip.hidden = true; }
+
+  function draw(id, value, max, ticks, fmt, unit) {
+    var card = document.getElementById(id);
+    var svg = card.querySelector("svg");
+    var W = 440, H = 230, L = 40, R = 8, T = 12, B = 44;
+    var ph = H - T - B, pw = W - L - R;
+    var y = function (v) { return T + ph - (v / max) * ph; };
+    ticks.forEach(function (t) {
+      el("line", { x1: L, x2: W - R, y1: y(t), y2: y(t), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      var tx = el("text", { x: L - 6, y: y(t) + 4, "text-anchor": "end" }, svg); tx.textContent = fmt(t);
+    });
+    var gw = pw / batches.length, bw = 30, gap = 4;
+    batches.forEach(function (b, i) {
+      var shown = b.bars.filter(function (bar) { return value(bar) !== null; });
+      var total = shown.length * bw + (shown.length - 1) * gap;
+      var x0 = L + gw * i + (gw - total) / 2;
+      shown.forEach(function (bar, j) {
+        var v = value(bar), x = x0 + j * (bw + gap), h = Math.max(0, y(0) - y(v));
+        var top = y(v);
+        var path = h > 0
+          ? "M" + x + "," + y(0) + " V" + (top + 4) + " Q" + x + "," + top + " " + (x + 4) + "," + top + " H" + (x + bw - 4) + " Q" + (x + bw) + "," + top + " " + (x + bw) + "," + (top + 4) + " V" + y(0) + " Z"
+          : "M" + x + "," + (y(0) - 1.5) + " H" + (x + bw) + " V" + y(0) + " H" + x + " Z";
+        el("path", { d: path, fill: colors[bar.g] }, svg);
+        var lab = el("text", { x: x + bw / 2, y: top - 6, "text-anchor": "middle", "class": "val" }, svg);
+        lab.textContent = fmt(v) + unit;
+        var hit = el("rect", { x: x - 3, y: T, width: bw + 6, height: ph, fill: "transparent", tabindex: 0, "aria-label": bar.label + " " + b.name + " " + fmt(v) + unit }, svg);
+        var html = "<b>" + bar.label + "</b> · " + b.name + "<br>成功 " + bar.ok + "/" + bar.n + (bar.t ? "<br>成功局平均 " + bar.t.toFixed(1) + " s" : "");
+        hit.addEventListener("mousemove", function (e) { showTip(card, e, html); });
+        hit.addEventListener("mouseleave", hideTip);
+        hit.addEventListener("focus", function () { var r = hit.getBoundingClientRect(); showTip(card, { clientX: r.left + r.width / 2, clientY: r.top + 20 }, html); });
+        hit.addEventListener("blur", hideTip);
+      });
+      var nm = el("text", { x: L + gw * i + gw / 2, y: H - B + 18, "text-anchor": "middle" }, svg);
+      nm.textContent = b.name;
+    });
+    el("line", { x1: L, x2: W - R, y1: y(0), y2: y(0), stroke: "var(--muted)", "stroke-width": 1 }, svg);
+  }
+
+  var num = function (v) { return Number.isInteger(v) ? String(v) : v.toFixed(1); };
+  draw("c-rate", function (b) { return 100 * b.ok / b.n; }, 100, [0, 25, 50, 75, 100], num, "%");
+  draw("c-time", function (b) { return b.t; }, 100, [0, 25, 50, 75, 100], num, " s");
+})();
+</script>

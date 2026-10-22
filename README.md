@@ -2,7 +2,7 @@
 
 We take a knot-tying task from an online video and rebuild it in simulation with [RoboSimStudio](https://robosimstudio.github.io/) (RSS, Newton physics). A [Graph-as-Policy](https://graph-robots.github.io/gap/) (GaP) computation graph then drives a YAM bimanual robot through the task. Codex agents write the graph and improve it by rehearsing it on varied task instances in parallel on Daytona: they localize each failure to a node and edit the graph to raise the success rate and cut cycle time.
 
-Status (2026-10-21): work in progress. The results below are what has been measured so far.
+Status (2026-10-21): work in progress. The results below are what has been measured so far. A results page with videos is in `site/` (published privately as a claude.ai artifact).
 
 ## Results so far
 
