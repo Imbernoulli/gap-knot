@@ -24,6 +24,16 @@ def focuses(stats: dict, report: dict, k: int) -> list[str]:
             reasons.setdefault(key, []).append(f"{why} ({m}x)")
     ranked = sorted(groups.items(), key=lambda kv: -kv[1])
     out = []
+    from harness import variants as _variants
+
+    if _variants.KNOT == "overhand_tighten":
+        rate = stats["success_rate"]
+        return [
+            f"SUCCESS RATE: {stats['successes']}/{n} episodes reached the tightness. Make the pull draw the knot up further and more reliably across instances (friction 0.6-1.4, stiffness, knot size 13-17 cm): read each cycle's outcome in the traces (held, rope in the knot after it) and change what limits it (lift height, pull distance and direction, grasp point, number of cycles, stopping rule), without losing the trefoil.",
+            "CYCLE TIME: reach the same tightness in fewer scene seconds: fewer but longer pulls, faster safe speeds, shorter settles and waits, no redundant reads; keep or raise the success rate." if rate >= 0.3 else
+            "A DIFFERENT PULL: try a different way to draw the knot up (e.g. pulling the tails in opposite directions along the knot's own axis, one hand holding while the other pulls, regrasping closer, pulling higher) and measure it against the baseline's per-cycle tightening.",
+            "ROBUSTNESS: look at which instances fail (friction, stiffness, knot size, placement) and make the graph adapt to them (read the rope's state and choose the pull from it).",
+        ][:k]
     finished_wrong = sum(m for key, m in ranked if ("verify" in key and "untied" in key) or key == "wrong diagram")
     if finished_wrong >= 0.5 * n:
         # The graph runs to the end but the rope is not knotted: aim at the steps that make the crossings.

@@ -282,8 +282,9 @@ def main() -> None:
                 name = "abcdefgh"[k]
                 cd = itd / f"cand_{name}"
                 ws = codex_agent.prepare(cd / "ws", best)
-                if variants.KNOT == "overhand":  # the refiners read this task's brief, not the double coin's
-                    shutil.copy2(ROOT / "harness" / "docs" / "TASK_overhand.md", ws / "docs" / "TASK.md")
+                if variants.KNOT in ("overhand", "overhand_tighten"):  # the refiners read this task's brief, not the double coin's
+                    brief = "TASK_tighten.md" if variants.KNOT == "overhand_tighten" else "TASK_overhand.md"
+                    shutil.copy2(ROOT / "harness" / "docs" / brief, ws / "docs" / "TASK.md")
                     for src, dst in (("overhand_start_and_target.png", "start_and_target.png"), ("overhand_storyboard.jpg", "video_storyboard.jpg")):
                         if (ROOT / "harness" / "docs" / "img" / src).exists():
                             shutil.copy2(ROOT / "harness" / "docs" / "img" / src, ws / "docs" / "img" / dst)

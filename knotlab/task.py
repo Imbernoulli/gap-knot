@@ -196,7 +196,7 @@ def diagram_knot_length(points: np.ndarray) -> float:
     return float(np.linalg.norm(np.diff(p[lo : hi + 2], axis=0), axis=1).sum())
 
 
-TIGHT_FRACTION = float(os.environ.get("KNOTLAB_TIGHT", "0.6"))
+TIGHT_FRACTION = float(os.environ.get("KNOTLAB_TIGHT", "0.75"))
 """A pulled-tight overhand knot holds at most this fraction of the loose knot's rope between its crossings."""
 
 _REGISTERED: set[str] = set()
