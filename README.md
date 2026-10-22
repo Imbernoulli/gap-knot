@@ -1,10 +1,10 @@
 # gap-knot: bimanual knot tying from a video, with RoboSimStudio and Graph-as-Policy
 
-**[Live results website →](https://imbernoulli.github.io/gap-knot/)** — videos, verified results, and current failure analysis. Published automatically from [`site/`](site/) by [GitHub Actions](https://github.com/Imbernoulli/gap-knot/actions/workflows/pages.yml).
+**[Live results website →](https://bohanlyu.com/gap-knot/)** — videos, verified results, and current failure analysis. Hosted on GitHub Pages using this account's existing domain and published automatically from [`site/`](site/) by [GitHub Actions](https://github.com/Imbernoulli/gap-knot/actions/workflows/pages.yml). The [github.io address](https://imbernoulli.github.io/gap-knot/) redirects here.
 
 We take a knot-tying task from an online video and rebuild it in simulation with [RoboSimStudio](https://robosimstudio.github.io/) (RSS, Newton physics). A [Graph-as-Policy](https://graph-robots.github.io/gap/) (GaP) computation graph then drives a YAM bimanual robot through the task. Codex agents write the graph and improve it by rehearsing it on varied task instances in parallel on Daytona: they localize each failure to a node and edit the graph to raise the success rate and cut cycle time.
 
-Status (2026-10-22): work in progress. From-straight knot tying is still unsolved. The results below distinguish it from tightening a knot already tied at the start. The [live results website](https://imbernoulli.github.io/gap-knot/) includes videos and the latest closed-loop diagnostics. The older claude.ai artifact has not been synced and contains superseded results.
+Status (2026-10-22): work in progress. From-straight knot tying is still unsolved. The results below distinguish it from tightening a knot already tied at the start. The [live results website](https://bohanlyu.com/gap-knot/) includes videos and the latest closed-loop diagnostics. The older claude.ai artifact has not been synced and contains superseded results.
 
 ## Results so far
 
@@ -34,6 +34,10 @@ Status (2026-10-22): work in progress. From-straight knot tying is still unsolve
 It set a 10 mm cord, and E = 2e4 Pa from the loose knot's settled shape. At that stiffness the YAM's pads cannot hold the SuperDex rod (a 5 cm carry moved the pinched point 4 mm, against 49 mm at 1e5). The task therefore keeps 1e5, the value RSS's own knot example uses.
 
 The `thread_feedback` graph remeasures the crossing after moving the rope; it is a threading segment probe from `start_shape=pre_thread`, not a demonstration of tying a knot from a straight rope. Eight follow-up probes all failed at the end. One made the intended under-crossing while retaining the first crossing immediately after the pass, then lost that structure on release. Variants, graphs, and intermediate diagnostics are archived in [results/threading_2026-10-22](results/threading_2026-10-22/README.md).
+
+The latest `overhand_feedback` prototype tracks the held rope material point relative to the TCP, keeps helper-hand state across phases, and stops on failed action checks. Versions v8–v10 passed their first three placement checks on the same nominal seed 0, but all ended without a knot. These are repeated development diagnostics, not independent test instances or retained crossings. [Measurements and failure details](results/feedback_progress_2026-10-22.json) accompany the website replay.
+
+Daytona's 8-vCPU / 16-GiB shape has been created and tested. One paired short grasp probe ran in 59.17 s versus 71.31 s on 2 vCPU / 4 GiB; this does not establish full knot-tying throughput. [Benchmark inputs and results](results/rss_cpu_benchmark_2026-10-22/README.md) are archived. `tools/feedback_parallel_run.py` supports up to six concurrent candidate rollouts on the larger shape, preserving frozen graphs and cleanup records.
 
 The old tightening curve (0/10 → 9/10) is withdrawn because it accepted airborne knots. Later diagnostic runs also used an incorrect height coordinate. The corrected runtime requires every rope node ≤5 cm above the bench, both jaws ≥5 cm open, both TCPs ≥6 cm from every rope node, and the trefoil/length conditions continuously for one second. [The audit](results/README.md) links all 30 verdicts, variants, and exact final rope coordinates.
 
