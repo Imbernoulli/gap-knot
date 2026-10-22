@@ -7,3 +7,8 @@ __pycache__/
 *.pyc
 .venv/
 fleet/state/
+# source clips and downloads (the YouTube videos are linked, not redistributed)
+video/**/*.mp4
+video/**/*.part
+video/**/*.info.json
+video/**/f/

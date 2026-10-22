@@ -1,0 +1,47 @@
+{
+ "clip": "/srv/home/bohanlyu/gap-knot/video/overhand/SwdJ5op25SM.mp4",
+ "fps": 29.97,
+ "width": 640,
+ "height": 480,
+ "duration": 49.6,
+ "frames": 1487,
+ "anchors": [
+  {
+   "t": 19.4,
+   "file": "t019.40.jpg",
+   "label": "straight",
+   "sim_step": 0
+  },
+  {
+   "t": 20.9,
+   "file": "t020.90.jpg",
+   "label": "loop_oval",
+   "sim_step": 2650
+  },
+  {
+   "t": 22.7,
+   "file": "t022.70.jpg",
+   "label": "loop",
+   "sim_step": 5303
+  },
+  {
+   "t": 31.0,
+   "file": "t031.00.jpg",
+   "label": "threaded",
+   "sim_step": 8613
+  },
+  {
+   "t": 33.6,
+   "file": "t033.60.jpg",
+   "label": "loose",
+   "sim_step": 9773
+  },
+  {
+   "t": 35.8,
+   "file": "t035.80.jpg",
+   "label": "tight",
+   "sim_step": 12593
+  }
+ ],
+ "note": "take1 pins: each clip anchor at the end of the plan phase that reproduces it (loop 0-5303, over -6953, thread -8613, tail -9773, pull -11295, verify -12593)"
+}
