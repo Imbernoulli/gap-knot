@@ -63,6 +63,7 @@ class Variant:
 
 NOMINAL = Variant()
 BENCH_ORIGIN = np.array([0.6, 0.0, 0.75])
+GRADER_VERSION = "2026-10-22-hands-clear-v1"
 BOARD_THICK = 0.001  # the foam board, drawn only: SuperDex's rope rests on the bench, not on a slab [m]
 PIN_RADIUS, PIN_HEIGHT = 0.0025, 0.050  # the video's pins stand ~5 cord diameters; at 30 mm a cord carried at 35 mm slid over one
 
@@ -216,6 +217,25 @@ def world_progress(positions: np.ndarray) -> float:
     return 1.0 if sc["tied"] else min(sc["progress"], 0.99)
 
 
+def hands_clear(positions, tcp_positions, widths) -> bool:
+    """Open jaws and both tool centres at least 6 cm from every rope node."""
+    nodes = np.asarray(positions, dtype=np.float64)
+    return all(float(w) >= 0.05 and float(np.linalg.norm(nodes - tcp, axis=1).min()) >= 0.06
+               for tcp, w in zip(tcp_positions, widths))
+
+
+def runtime_progress(snapshot, positions: np.ndarray) -> float:
+    """Geometric predicate plus measured hand clearance on this RSS snapshot."""
+    value = world_progress(positions)
+    if value < 1.0 or CURRENT["variant"].start_shape != "loose_knot":
+        return value
+    env = CURRENT["env"]
+    state = snapshot.ctx.state
+    tcp = [np.asarray(env.arm(name).ee_pose(state)[0]) for name in ("left", "right")]
+    widths = [env.gripper(name).width(state) for name in ("left", "right")]
+    return value if hands_clear(positions, tcp, widths) else 0.99
+
+
 def _register_measure() -> None:
     from robosimstudio.assetlib.semantics.atoms import ArgSpec, AtomSpec, register_atom
     from robosimstudio.assetlib.semantics.handlers import handler
@@ -224,10 +244,10 @@ def _register_measure() -> None:
         return
     # coin_progress scores whichever knot the current variant ties (the name predates the overhand knot).
 
-    def coin_progress(positions: np.ndarray) -> float:
+    def coin_progress(snapshot, positions: np.ndarray) -> float:
         # 1.0 only when the knot counts as tied (for the overhand knot: either handedness, and drawn tight when the
         # episode starts from a loose knot); otherwise the code matched so far, kept below 1.
-        return world_progress(positions)
+        return runtime_progress(snapshot, positions)
 
     with contextlib.suppress(ValueError):
         register_atom(
@@ -238,13 +258,14 @@ def _register_measure() -> None:
                 args=(ArgSpec(name="body", substrates=("rod",)),),
                 directions=("check", "observe"),
                 returns=("coin_progress",),
+                reads_scene=True,
                 provenance="knotlab: the open 3-lead 4-bight Turk's head, eight crossings met alternately over and under.",
             )
         )
 
         @handler("coin_progress", substrates=("rod",), summary="The double coin knot's code matched so far, 0..1.")
-        def _h(positions: np.ndarray) -> dict:
-            return {"coin_progress": coin_progress(positions)}
+        def _h(snapshot, positions: np.ndarray) -> dict:
+            return {"coin_progress": coin_progress(snapshot, positions)}
 
     _REGISTERED.add("coin_progress")
 
@@ -330,4 +351,6 @@ def build(v: Variant = NOMINAL, *, max_steps: int = 6000):
         color=(0.85, 0.15, 0.45),
     )
     reg(Rod.from_spec(rope, name="knot_rope"))
-    return bench.Env(bench.task(task_doc(max_steps, v.knot)))
+    env = bench.Env(bench.task(task_doc(max_steps, v.knot)))
+    CURRENT["env"] = env  # static arm/gripper handles; runtime_progress reads the provided snapshot's state
+    return env

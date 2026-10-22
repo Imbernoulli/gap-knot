@@ -39,6 +39,14 @@ class TestTighteningScore(unittest.TestCase):
         straight[:, 1:] = [0, 0.005]
         self.assertLess(task.world_progress(straight + task.BENCH_ORIGIN), 1.0)
 
+    def test_hands_must_be_open_and_withdrawn(self):
+        nodes = self.tight + task.BENCH_ORIGIN
+        far = [nodes[0] + [0, 0, 0.12], nodes[-1] + [0, 0, 0.12]]
+        self.assertTrue(task.hands_clear(nodes, far, [0.095, 0.095]))
+        self.assertFalse(task.hands_clear(nodes, far, [0.01, 0.095]))
+        near = [nodes[0] + [0, 0, 0.02], far[1]]
+        self.assertFalse(task.hands_clear(nodes, near, [0.095, 0.095]))
+
 
 if __name__ == "__main__":
     unittest.main()

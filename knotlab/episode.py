@@ -95,6 +95,7 @@ def run(graph: str, variant_json: str, out: str, *, max_steps: int = 6000, every
         if e["event"] == "end":
             nodes.append(e)
     summary = {
+        "grader_version": task.GRADER_VERSION,
         "graph": graph,
         "variant": json.loads(v.to_json()),
         "success": success,
