@@ -1,0 +1,38 @@
+{
+  "version": 3,
+  "meta": {
+    "name": "overhand_feedback",
+    "description": "Closed-loop straight rope overhand policy: retain the helper arch through X2 and X3, replan from rope.state after each phase."
+  },
+  "nodes": {
+    "tie": {"type": "subgraph", "ref": "tie_sg"},
+    "done": {"type": "end", "status": "success"},
+    "abort": {"type": "end", "status": "failure",
+      "recovery": [
+        {"tool": "robot.open_gripper", "inputs": {"arm_id": 0}},
+        {"tool": "robot.open_gripper", "inputs": {"arm_id": 1}},
+        {"tool": "robot.go_home", "inputs": {"arm_id": 0}},
+        {"tool": "robot.go_home", "inputs": {"arm_id": 1}}
+      ]}
+  },
+  "edges": [["START", "tie"]],
+  "conditional_edges": {"tie": {"router_field": "exit",
+    "mapping": {"tied": "done", "untied": "abort", "failed": "abort"}}},
+  "subgraphs": {
+    "tie_sg": {
+      "skill": "generic",
+      "inputs": {},
+      "outputs": {},
+      "nodes": {
+        "act": {"type": "script", "script": "scripts/tie_once.py"},
+        "tied": {"type": "noop"},
+        "untied": {"type": "noop"}
+      },
+      "edges": [["START", "act"], ["tied", "END"], ["untied", "END"]],
+      "conditional_edges": {"act": {"router_field": "route",
+        "mapping": {"tied": "tied", "untied": "untied", "failed": "untied"}}},
+      "exit": {"router_field": null, "success_values": ["tied", "untied"]},
+      "on_error": "failed"
+    }
+  }
+}

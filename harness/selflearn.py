@@ -39,7 +39,22 @@ def check(graph_dir) -> list[str]:
 
 PROMPTS = ROOT / "harness" / "prompts"
 PROMPT_SUFFIX = ""  # "_simple": the generation prompts that ask for composition of the skill library
-IMAGES = [ROOT / "harness" / "docs" / "img" / "video_storyboard.jpg", ROOT / "harness" / "docs" / "img" / "start_and_target.png"]
+def task_assets() -> tuple[str, list[Path]]:
+    """Use the selected task's brief and pictures in every generation/refinement role."""
+    overhand = variants.KNOT in ("overhand", "overhand_tighten")
+    brief = "TASK_tighten.md" if variants.KNOT == "overhand_tighten" else ("TASK_overhand.md" if overhand else "TASK.md")
+    names = ("overhand_storyboard.jpg", "overhand_start_and_target.png") if overhand else ("video_storyboard.jpg", "start_and_target.png")
+    return brief, [ROOT / "harness" / "docs" / "img" / name for name in names]
+
+
+def prepare_workspace(ws: Path, graph: Path | None = None) -> Path:
+    """Prepare an isolated agent workspace with task-correct canonical doc names."""
+    ws = codex_agent.prepare(ws, graph)
+    brief, images = task_assets()
+    shutil.copy2(ROOT / "harness" / "docs" / brief, ws / "docs" / "TASK.md")
+    for src, name in zip(images, ("video_storyboard.jpg", "start_and_target.png")):
+        shutil.copy2(src, ws / "docs" / "img" / name)
+    return ws
 
 
 def log(run: Path, msg: str) -> None:
@@ -55,11 +70,12 @@ def generate(run: Path) -> Path:
     final = gen / "graph"
     if (final / "workflow.json").exists() and not check(final):
         return final
-    coord = codex_agent.prepare(gen / "coordinator")
+    images = task_assets()[1]
+    coord = prepare_workspace(gen / "coordinator")
     (coord / "graph" / "scripts").mkdir(parents=True, exist_ok=True)
     if not (coord / "graph" / "SEGMENTS.md").exists() or check(coord / "graph"):
         log(run, "generation: orchestration agent decomposing the task")
-        r = codex_agent.run("coordinator", coord, (PROMPTS / f"coordinator{PROMPT_SUFFIX}.md").read_text(), images=IMAGES, timeout_s=3600)
+        r = codex_agent.run("coordinator", coord, (PROMPTS / f"coordinator{PROMPT_SUFFIX}.md").read_text(), images=images, timeout_s=3600)
         log(run, f"  coordinator exit={r['exit']} {r['wall_s']}s")
         probs = check(coord / "graph")
         if probs:
@@ -78,12 +94,12 @@ def generate(run: Path) -> Path:
         resumed = (ws / "graph" / "workflow.json").exists()
         if done.exists():
             return {"sg": sg, "exit": 0, "cached": True}
-        codex_agent.prepare(ws, None if resumed else coord / "graph")
+        prepare_workspace(ws, None if resumed else coord / "graph")
         prompt = (PROMPTS / f"subgraph{PROMPT_SUFFIX}.md").read_text().replace("{sg}", sg)
         if resumed:
             prompt = ("NOTE: an earlier session on this subgraph was cut off (account usage limit) before it finished. "
                       "`graph/` holds its partial work. Review it critically, complete it, and validate.\n\n" + prompt)
-        r = codex_agent.run(f"skill_{sg}", ws, prompt, images=IMAGES[1:], timeout_s=3600)
+        r = codex_agent.run(f"skill_{sg}", ws, prompt, images=images[1:], timeout_s=3600)
         if r["exit"] == 0 and not r.get("limited"):
             done.write_text(json.dumps({k: r[k] for k in ("exit", "wall_s")}))
         return {"sg": sg, **{k: r[k] for k in ("exit", "wall_s", "limited")}}
@@ -112,7 +128,7 @@ def generate(run: Path) -> Path:
     probs = check(final)
     if probs:
         log(run, "merged graph does not validate; orchestration agent fixes it")
-        ws = codex_agent.prepare(gen / "merge_fix", final)
+        ws = prepare_workspace(gen / "merge_fix", final)
         msg = ("The graph in graph/ was assembled from the orchestration skeleton and each skill agent's subgraph. "
                "It does not validate:\n" + "\n".join(probs) + "\nFix only what is needed to make it valid and coherent "
                "(read graph/SEGMENTS.md for intent); run ./validate.sh until VALID.")
@@ -281,13 +297,7 @@ def main() -> None:
             def refine(k: int) -> dict:
                 name = "abcdefgh"[k]
                 cd = itd / f"cand_{name}"
-                ws = codex_agent.prepare(cd / "ws", best)
-                if variants.KNOT in ("overhand", "overhand_tighten"):  # the refiners read this task's brief, not the double coin's
-                    brief = "TASK_tighten.md" if variants.KNOT == "overhand_tighten" else "TASK_overhand.md"
-                    shutil.copy2(ROOT / "harness" / "docs" / brief, ws / "docs" / "TASK.md")
-                    for src, dst in (("overhand_start_and_target.png", "start_and_target.png"), ("overhand_storyboard.jpg", "video_storyboard.jpg")):
-                        if (ROOT / "harness" / "docs" / "img" / src).exists():
-                            shutil.copy2(ROOT / "harness" / "docs" / "img" / src, ws / "docs" / "img" / dst)
+                ws = prepare_workspace(cd / "ws", best)
                 shutil.copy2(itd / "incumbent" / "REPORT.md", ws / "docs" / "REPORT.md")
                 shutil.copy2(run / "HISTORY.md", ws / "docs" / "HISTORY.md")
                 pics = evidence(itd / "incumbent", ws / "evidence", rep["episodes"])

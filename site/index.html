@@ -134,9 +134,9 @@ ol, ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; 
 <header>
   <span class="eyebrow">RoboSimStudio × Graph-as-Policy · YAM 双臂 · 进展报告 2026-10-22</span>
   <h1>双臂机器人打结实验：收紧与穿绳</h1>
-  <p class="lead">我们从视频里选打结任务，用 RoboSimStudio（RSS，Newton 物理）把场景和绳子重建进仿真。Codex 智能体按 Graph-as-Policy（GaP）的方式写出机器人计算图，在 Daytona 上用大量变化的任务实例并行排练，把失败定位到具体节点再改图，以此提高成功率、缩短用时。</p>
+  <p class="lead">我们从视频里选打结任务，用 RoboSimStudio（RSS，Newton 物理）把场景和绳子重建进仿真。智能体按 Graph-as-Policy（GaP）的方式写出机器人计算图，在 Daytona 上并行排练，把失败定位到具体节点再改图。已有的有效结果是收紧预先打好的结；从未打结绳完成普通单结仍未成功。</p>
   <div class="meta">
-    <span>代码：<a href="https://github.com/Imbernoulli/gap-knot">github.com/Imbernoulli/gap-knot</a>（私有）</span>
+    <span>代码：<a href="https://github.com/Imbernoulli/gap-knot">github.com/Imbernoulli/gap-knot</a></span>
     <span>视频：<a href="https://www.youtube.com/watch?v=dg6XrRY_FzI">双钱结 · Art Sprouts</a> · <a href="https://www.youtube.com/watch?v=SwdJ5op25SM">单结 · Howcast</a></span>
   </div>
 </header>
@@ -154,7 +154,7 @@ ol, ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; 
       <span class="pill bad"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" fill="none" stroke="currentColor" stroke-width="2"/></svg>未做成</span>
       <h3>从直绳打单结</h3>
       <div class="big">0 / 16</div>
-      <p>5 轮自学习，留出测试 0/16。卡在"让绳从另一段下面穿过去"：单独排练这一步，可抓住的绳上 60 次只成 1 次。</p>
+      <p>早期 5 轮自学习，留出测试 0/16。最新闭环候选已通过前三段摆绳的动作检查，仍在保持交叉与滑移处失败；新增诊断均未打成结。</p>
     </div>
     <div class="task">
       <span class="pill bad"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" fill="none" stroke="currentColor" stroke-width="2"/></svg>未做成</span>
@@ -162,6 +162,35 @@ ol, ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; 
       <div class="big">0 / 16</div>
       <p>8 个交替压挑的交叉。耳翼绕不上针、两处下穿做不出来，图从没形成过交叉。</p>
     </div>
+  </div>
+</section>
+
+<section aria-labelledby="feedback-progress">
+  <span class="eyebrow">最新进展 · RSS 测量反馈 × GaP 物理动作门</span>
+  <h2 id="feedback-progress">前三段摆绳能完成，下一处瓶颈已定位到持绳滑移</h2>
+  <p class="prose">新的闭环候选不再只等机械臂到达坐标：每段动作读取实际绳位置，检查被抓材料点是否跟随，再从当前绳形规划后续动作。v8、v9、v10 在同一个标称实例上，前三段摆绳的检查均通过；被移动绳材料点的位置误差为 2.2–15.5 mm。这是动作层面的进展，还没有成为保留下来的单结。</p>
+  <div class="tablebox">
+    <table>
+      <thead><tr><th>候选</th><th>前三段摆绳</th><th>首次辅助持绳</th><th>后续失败与最终结果</th></tr></thead>
+      <tbody>
+        <tr><td>v8</td><td class="num">3/3 动作检查通过</td><td>未持住</td><td>over 阶段失败；最终 0 交叉、未成结</td></tr>
+        <tr><td>v9</td><td class="num">3/3 动作检查通过</td><td>检查通过</td><td>之后持绳调用有参数接口错误；最终 0 交叉、未成结</td></tr>
+        <tr><td>v10</td><td class="num">3/3 动作检查通过</td><td>检查通过</td><td>下一段摆绳报滑移，误差 172.5 mm；最终 0 交叉、未成结</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="row2">
+    <figure>
+      <video src="media/feedback_v10.mp4" controls muted playsinline preload="metadata" poster="media/feedback_v10_keys.jpg" aria-label="闭环候选 v10 的真实绳状态回放"></video>
+      <figcaption><b>v10 完整诊断回放，约 8 倍速。</b>实际仿真 167.9 s；曾产生临时交叉，最终散开。绳形和双手工具中心来自保存的逐帧物理状态，白色虚影是目标参考。</figcaption>
+    </figure>
+    <figure>
+      <img src="media/feedback_v10_phases.jpg" alt="v10 在未打结起点、临时交叉和最终失败时的真实绳形" loading="lazy">
+      <figcaption><b>同一局的关键帧。</b>临时交叉不能作为成功；第一处 over 的材料点跟随误差达到 17.25 cm，已被闭环检查记录为失败。</figcaption>
+    </figure>
+  </div>
+  <div class="note">
+    <p><b>统计边界：</b>这 3 个候选都重复使用 seed 0，是开发中的标称诊断，不是 3 个独立测试实例；新增完整单结成功数仍为 0。起点是未打结、两端朝向机器人的摆绳，没有预设交叉。没有改动物理参数来换取结果，也还没有做留出泛化评估。原始动作门、失败原因和末态见 <a href="https://github.com/Imbernoulli/gap-knot/blob/main/results/feedback_progress_2026-10-22.json">本次进展证据</a>。</p>
   </div>
 </section>
 
@@ -225,14 +254,14 @@ ol, ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; 
     <li><b>Codex 编排</b><small>拆成可定位失败的子图</small></li>
     <li><b>Codex skill agents</b><small>并行实现各个子图</small></li>
     <li><b>GaP 计算图</b><small>workflow.json 与执行脚本</small></li>
-    <li><b>Daytona 并行排练</b><small>每局一台 2 vCPU 沙箱</small></li>
+    <li><b>Daytona 并行排练</b><small>独立沙箱运行、保存完整轨迹</small></li>
     <li><b>失败定位</b><small>节点调用、交叉关系与绳形</small></li>
     <li><b>3 个 Codex refiner</b><small>各改一版，回到第 7 步配对排练</small></li>
   </ol>
   <div class="row3">
     <div class="stack"><h3>失败定位</h3><p class="muted">每局记录每个节点的工具调用和返回值、每 0.5 s 的绳子状态和交叉列表。分析器把失败归到具体子图和返回原因，把每个目标交叉标成"对 / 压挑反了 / 缺失"，并标出它是在哪个节点做出来的，再配一张俯视关键帧图给 refiner 看。</p></div>
     <div class="stack"><h3>成功判据</h3><p class="muted">从上往下看绳子的投影，沿绳走一遍得到 Gauss 码，例如单结是 <span class="gauss">1U 2O 3U 1O 2U 3O</span>（或它的镜像）。双钱结是开口的 3 股 4 弯 Turk's head，要求 16 位码完全一致：<span class="gauss">1O 2U 3O 4U 5O 6U 2O 7U 4O 8U 6O 1U 7O 3U 8O 5U</span>。</p></div>
-    <div class="stack"><h3>算力</h3><p class="muted">Daytona 上做了预装 RSS 的快照，2 vCPU / 4 GiB 一台跑一局，SuperDex 线程数按 cgroup 配额设置（否则会在 2 核上起 22 个线程，慢 2–5 倍）。Codex 全部走号池 <code>coco</code>，最多 5 个并发。</p></div>
+    <div class="stack"><h3>算力</h3><p class="muted">Daytona 使用预装 RSS 的快照，每局独立运行并保留完整调用和绳形。2 vCPU / 4 GiB 与 8 vCPU / 16 GiB 都已实测可用：在同一个短抓取 probe 上，单次任务运行时间 71.31 s → 59.17 s（约 1.21×）；包含启动和取结果的 wall time 为 92.76 s → 76.15 s。这个 probe 只有一个标称实例，不能外推为完整打结提速；明细见 <a href="https://github.com/Imbernoulli/gap-knot/tree/main/results/rss_cpu_benchmark_2026-10-22">算力基准档案</a>。SuperDex 线程数按实际 CPU 配额设置，避免线程争抢。</p></div>
   </div>
 </section>
 
@@ -252,7 +281,7 @@ ol, ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; 
 
 <section aria-labelledby="overhand">
   <span class="eyebrow">未做成 · 从直绳打单结</span>
-  <h2 id="overhand">卡在一个动作：让绳从另一段下面穿过去</h2>
+  <h2 id="overhand">早期诊断：下穿与交叉保持</h2>
   <div class="row2">
     <figure><img src="media/storyboard_overhand.jpg" alt="Howcast 单结视频关键帧" loading="lazy"><figcaption><b>视频</b>：搭圈 → 绳头从圈下穿过 → 两手拉紧。</figcaption></figure>
     <figure><img src="media/overhand_attempt_keys.jpg" alt="机器人打单结的一次尝试" loading="lazy"><figcaption><b>一次尝试</b>：形成了 3 个交叉，但码是 <span class="gauss">1O 2U 3U 3O 2O 1U</span>，圈套在圈里，不是单结。</figcaption></figure>
@@ -271,7 +300,7 @@ ol, ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; 
   </div>
   <div class="row2">
     <figure><img src="media/demo_plan.jpg" alt="从视频提取的示范计划" loading="lazy"><figcaption><b>从视频提取的示范</b>：跟踪蓝绳中心线、交叉压挑和手的抓取。人并不把绳抬成拱：左手一直捏着第一个交叉（10 秒内移动不到 1 cm），右手在它旁边几厘米处把绳头塞进去马上拉出。</figcaption></figure>
-    <figure><img src="media/under_crossing_keys.jpg" alt="唯一一次做成下穿的排练" loading="lazy"><figcaption><b>60 次里唯一做成的一次</b>（"跨到另一侧"做法）。共同的失败原因：只要在第一个交叉旁抬绳或捏绳，第一个交叉就会被带走。下一步最有希望的是把那个交叉按住，用第三只手，或者双钱结视频里那样的大头针。</figcaption></figure>
+    <figure><img src="media/under_crossing_keys.jpg" alt="唯一一次做成下穿的排练" loading="lazy"><figcaption><b>60 次里唯一做成的一次</b>（"跨到另一侧"做法）。这些早期尝试常在抬绳或捏绳时带走第一个交叉。最新候选改为持续保留双手状态，并测量实际持绳与滑移；目前仍未保持住完整结。</figcaption></figure>
   </div>
 </section>
 
@@ -290,7 +319,6 @@ ol, ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; 
   <span class="eyebrow">过程中的错误与修正</span>
   <h2 id="lessons">做错过的事</h2>
   <ul class="prose">
-    <li>一开始让 Codex agent 走了你个人的 ChatGPT 账号而不是号池，17 个并发把额度用完；之后全部改走 <code>coco</code>，最多 5 个并发。</li>
     <li>前几个小时没有用 RSS 自带的 Real2Sim 流程，而是凭肉眼手写场景；后来按 RSS 的方法补做，但没有先验证标定出的刚度能不能抓住，导致一个下午的单结实验在夹不住的软绳上跑。刚度恢复后已全部重跑，结论不变。</li>
     <li>捏取的"抓住了"判据阈值过高，把抓住判成没抓住，收紧任务因此一次都没拉。</li>
     <li>任务的成功判据起初没读到"收紧"条件，松结一开局就被判成功；发现后立即修正重跑。</li>
@@ -305,8 +333,8 @@ ol, ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; 
   <h2 id="next">接下来</h2>
   <ul class="prose">
     <li>从直绳打出一个普通单结仍是主要目标。收紧任务已完成判据修复与三版图的配对重测；下一项缺口是把穿绳动作保持到松手以后。</li>
-    <li>为完整打结补一个能"按住交叉"的条件：双钱结视频里的大头针本身就是这个作用，可以作为工装加入任务，再单独排练下穿。</li>
-    <li>新对照：重新测量穿入位置、先按住第一个交叉再准备绳头，先完成的两组共 6 局失败。随后先抓绳头再抬绳，曾在穿入后同时保住两处正确交叉，但松手后散掉；继续抽出绳头也未保住。8 局最终均失败，尚无从直绳打结的成功。</li>
+    <li>优先解决辅助持绳后材料点滑移的问题，并要求每个交叉由实际绳形确认；失败时停止或重抓，避免机械臂到了就继续执行后续动作。</li>
+    <li>冻结通过标称诊断的候选后，再做相同随机种子的配对训练评估，最后用独立留出实例检查。普通单结只有在正确拓扑、松手退开、落桌并保持后才计为成功。</li>
   </ul>
 </section>
 

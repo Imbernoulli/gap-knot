@@ -64,6 +64,7 @@ def main():
  args=ap.parse_args()
  if not 1<=args.workers<=6 or args.n<1 or args.offset<0 or args.max_steps<1: ap.error('n/max-steps positive; workers 1..6')
  out=args.out.absolute(); out.mkdir(parents=True,exist_ok=True)
+ if (out/'summary.json').exists():ap.error('completed output already exists; use a fresh --out')
  graph=ROOT/'graphs/grasp_probe' if not args.graph else ROOT/args.graph[0]
  if not graph.is_dir(): ap.error(f'missing graph {graph}')
  v=task.Variant.from_json(args.variant_json) if args.variant_json else variants.nominal('overhand')
@@ -83,6 +84,8 @@ def main():
  graph=frozen[0]
  manifest={'graphs':{g.name:digest(g) for g in frozen},'instances':[dataclasses.asdict(x) for x in instances],
            'max_steps':args.max_steps,'workers':args.workers,'grader_version':task.GRADER_VERSION,
+           'benchmark_shapes':[{'cpu':2,'memory':4,'disk':30},{'cpu':8,'memory':16,'disk':30}],
+           'candidate_shape':{'cpu':8,'memory':16,'disk':30},'benchmark_parallelism':2,
            'scope':'RSS/GaP runtime benchmark; no tying claim'}
  if (out/'manifest.json').exists() and json.loads((out/'manifest.json').read_text())!=manifest:ap.error('manifest differs; use fresh --out')
  (out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')

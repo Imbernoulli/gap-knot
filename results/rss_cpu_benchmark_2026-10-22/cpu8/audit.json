@@ -1,0 +1,17 @@
+[
+  {
+    "seed": 0,
+    "episode": "cpu8",
+    "runtime_success": false,
+    "audit_errors": [],
+    "success": false,
+    "sim_time_s": 8.75,
+    "wall_s": 56.8,
+    "grader_version": "2026-10-22-hands-clear-v1",
+    "geometry_shape": [
+      96,
+      3
+    ],
+    "geometry_finite": true
+  }
+]

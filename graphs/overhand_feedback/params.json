@@ -1,0 +1,22 @@
+{
+ "plan": {},
+ "lay": {
+  "height": 0.035,
+  "retries": 2,
+  "overshoot": 0.0
+ },
+ "pull": {
+  "distance": 0.06,
+  "step": 0.01,
+  "height": 0.03,
+  "end_back": 0.04
+ },
+ "verify": {
+  "settle_steps": 45
+ },
+ "pinch": {
+  "low": 0.012,
+  "fraction": 0.90,
+  "open_width": 0.095
+ }
+}

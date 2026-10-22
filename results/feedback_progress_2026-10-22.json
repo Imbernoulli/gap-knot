@@ -1,0 +1,297 @@
+{
+  "date": "2026-10-22",
+  "purpose": "Measured partial progress for closed-loop overhand candidates; not a new success-rate benchmark.",
+  "ordinary_knot_final_successes": 0,
+  "candidate_count": 3,
+  "independent_instances": 1,
+  "reused_seed": 0,
+  "interpretation": [
+    "The first three lay actions passed their measured action gates in each candidate.",
+    "An action-gate pass does not establish a retained topological crossing.",
+    "v10 reported first hold held=true, then failed the first over lay with error 0.1725 m and lag 0.1709 m.",
+    "v9 includes a later hold API error and is not a clean complete execution.",
+    "All three candidates ended with zero projected crossings and no knot.",
+    "The new candidates have not been evaluated on held-out seeds."
+  ],
+  "tightening_reference": {
+    "source": "results/tighten_hands_off_2026-10-22.json",
+    "seeds": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "split": "reused_training_instances_paired_reevaluation",
+    "G0": {
+      "successes": 0,
+      "episodes": 10
+    },
+    "G1": {
+      "successes": 5,
+      "episodes": 10,
+      "mean_success_sim_time_s": 105.92
+    },
+    "G2": {
+      "successes": 6,
+      "episodes": 10,
+      "mean_success_sim_time_s": 65.42
+    }
+  },
+  "candidates": [
+    {
+      "candidate": "v8",
+      "source": "runs/overhand_feedback_nominal_v8/ep000000",
+      "seed": 0,
+      "split": "repeated_nominal_diagnostic",
+      "start_shape": "omega",
+      "success": false,
+      "initial_lay": [
+        {
+          "k": 0,
+          "kind": "lay",
+          "arm_id": 0,
+          "event": 1,
+          "ok": true,
+          "failure": null,
+          "error": 0.0026,
+          "held": true,
+          "lag": 0.0023
+        },
+        {
+          "k": 1,
+          "kind": "lay",
+          "arm_id": 1,
+          "event": 1,
+          "ok": true,
+          "failure": null,
+          "error": 0.0112,
+          "held": true,
+          "lag": 0.0043
+        },
+        {
+          "k": 2,
+          "kind": "lay",
+          "arm_id": 1,
+          "event": 1,
+          "ok": true,
+          "failure": null,
+          "error": 0.0131,
+          "held": true,
+          "lag": 0.0063
+        }
+      ],
+      "first_hold": {
+        "k": 3,
+        "kind": "hold",
+        "arm_id": 0,
+        "event": 1,
+        "held": false,
+        "ok": false,
+        "failure": "not_held"
+      },
+      "first_over_lay": {
+        "k": 4,
+        "kind": "lay",
+        "arm_id": 1,
+        "event": 6,
+        "ok": true,
+        "failure": null,
+        "error": 0.011,
+        "held": true,
+        "lag": 0.0085
+      },
+      "trace_failure": "over",
+      "sim_time_s": 150.75,
+      "wall_s": 497.5,
+      "final": {
+        "code": "(none)",
+        "crossings": 0,
+        "prefix": 0,
+        "progress": 0.0,
+        "tied": false,
+        "knot_length": 0.0,
+        "max_height": 0.00679093599319458,
+        "x": []
+      }
+    },
+    {
+      "candidate": "v9",
+      "source": "runs/overhand_feedback_nominal_v9/ep000000",
+      "seed": 0,
+      "split": "repeated_nominal_diagnostic",
+      "start_shape": "omega",
+      "success": false,
+      "initial_lay": [
+        {
+          "k": 0,
+          "kind": "lay",
+          "arm_id": 0,
+          "event": 1,
+          "ok": true,
+          "failure": null,
+          "error": 0.0022,
+          "held": true,
+          "lag": 0.0012
+        },
+        {
+          "k": 1,
+          "kind": "lay",
+          "arm_id": 1,
+          "event": 1,
+          "ok": true,
+          "failure": null,
+          "error": 0.0112,
+          "held": true,
+          "lag": 0.0046
+        },
+        {
+          "k": 2,
+          "kind": "lay",
+          "arm_id": 1,
+          "event": 1,
+          "ok": true,
+          "failure": null,
+          "error": 0.0155,
+          "held": true,
+          "lag": 0.0038
+        }
+      ],
+      "first_hold": {
+        "k": 3,
+        "kind": "hold",
+        "arm_id": 0,
+        "event": 1,
+        "held": true,
+        "move": "reached",
+        "strand_z": 0.0059,
+        "ok": true
+      },
+      "first_over_lay": {
+        "k": 4,
+        "kind": "lay",
+        "arm_id": 1,
+        "event": 6,
+        "ok": true,
+        "failure": null,
+        "error": 0.0101,
+        "held": true,
+        "lag": 0.003
+      },
+      "trace_failure": "over",
+      "sim_time_s": 125.55,
+      "wall_s": 396.9,
+      "final": {
+        "code": "(none)",
+        "crossings": 0,
+        "prefix": 0,
+        "progress": 0.0,
+        "tied": false,
+        "knot_length": 0.0,
+        "max_height": 0.006799280643463135,
+        "x": []
+      }
+    },
+    {
+      "candidate": "v10",
+      "source": "runs/overhand_feedback_nominal_v10/ep000000",
+      "seed": 0,
+      "split": "repeated_nominal_diagnostic",
+      "start_shape": "omega",
+      "success": false,
+      "initial_lay": [
+        {
+          "k": 0,
+          "kind": "lay",
+          "arm_id": 0,
+          "event": 1,
+          "ok": true,
+          "failure": null,
+          "error": 0.0026,
+          "held": true,
+          "lag": 0.0023
+        },
+        {
+          "k": 1,
+          "kind": "lay",
+          "arm_id": 1,
+          "event": 1,
+          "ok": true,
+          "failure": null,
+          "error": 0.0112,
+          "held": true,
+          "lag": 0.0043
+        },
+        {
+          "k": 2,
+          "kind": "lay",
+          "arm_id": 1,
+          "event": 1,
+          "ok": true,
+          "failure": null,
+          "error": 0.0149,
+          "held": true,
+          "lag": 0.0088
+        }
+      ],
+      "first_hold": {
+        "k": 3,
+        "kind": "hold",
+        "arm_id": 0,
+        "event": 1,
+        "held": true,
+        "move": "reached",
+        "strand_z": 0.0037,
+        "ok": true
+      },
+      "first_over_lay": {
+        "k": 4,
+        "kind": "lay",
+        "arm_id": 1,
+        "event": 6,
+        "ok": false,
+        "failure": "slipped",
+        "error": 0.1725,
+        "held": true,
+        "lag": 0.1709
+      },
+      "trace_failure": "over",
+      "sim_time_s": 167.9,
+      "wall_s": 544.1,
+      "final": {
+        "code": "(none)",
+        "crossings": 0,
+        "prefix": 0,
+        "progress": 0.0,
+        "tied": false,
+        "knot_length": 0.0,
+        "max_height": 0.006811857223510742,
+        "x": []
+      }
+    }
+  ],
+  "compute_benchmark": {
+    "source": "results/rss_cpu_benchmark_2026-10-22",
+    "scope": "one short RSS grasp_probe, nominal seed 0; not complete tying throughput",
+    "cpu2_memory_gib": {
+      "cpu": 2,
+      "memory_gib": 4,
+      "job_run_s": 71.31,
+      "wall_s": 92.76
+    },
+    "cpu8_memory_gib": {
+      "cpu": 8,
+      "memory_gib": 16,
+      "job_run_s": 59.17,
+      "wall_s": 76.15
+    },
+    "job_speedup": 1.21,
+    "cleanup_verified": true,
+    "conclusion": "8 vCPU / 16 GiB RSS runtime is usable; this single short probe does not justify a full-knot speed claim."
+  }
+}

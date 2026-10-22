@@ -1,0 +1,63 @@
+{
+  "runs": [
+    {
+      "pool": "feedback-36ea7b81c2c6",
+      "cpu": 2,
+      "memory": 4,
+      "workers": 1,
+      "wall_s": 92.76,
+      "jobs": [
+        {
+          "id": "g0-04624-ep000000",
+          "status": "ok",
+          "exit": 0,
+          "run_s": 71.31204319000244,
+          "attempts": 1
+        }
+      ],
+      "error": null,
+      "remaining_sandboxes": 0,
+      "label": "cpu2"
+    },
+    {
+      "pool": "feedback-9bc88c73c51c",
+      "cpu": 8,
+      "memory": 16,
+      "workers": 1,
+      "wall_s": 76.15,
+      "jobs": [
+        {
+          "id": "g0-04624-ep000000",
+          "status": "ok",
+          "exit": 0,
+          "run_s": 59.17398953437805,
+          "attempts": 1
+        }
+      ],
+      "error": null,
+      "remaining_sandboxes": 0,
+      "label": "cpu8"
+    }
+  ],
+  "benchmark": {
+    "cpu2": {
+      "wall_s": 92.76,
+      "jobs": 1,
+      "error": null
+    },
+    "cpu8": {
+      "wall_s": 76.15,
+      "jobs": 1,
+      "error": null
+    }
+  },
+  "cleanup_verified": true,
+  "performance": {
+    "mean_job_run_s": {
+      "cpu2": 71.31204319000244,
+      "cpu8": 59.17398953437805
+    },
+    "cpu8_speedup_vs_cpu2": 1.2051248149927867,
+    "note": "One short grasp-only task, includes startup/IK; not full tying throughput."
+  }
+}

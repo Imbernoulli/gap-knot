@@ -1,8 +1,10 @@
 # gap-knot: bimanual knot tying from a video, with RoboSimStudio and Graph-as-Policy
 
+**[Live results website →](https://imbernoulli.github.io/gap-knot/)** — videos, verified results, and current failure analysis. Published automatically from [`site/`](site/) by [GitHub Actions](https://github.com/Imbernoulli/gap-knot/actions/workflows/pages.yml).
+
 We take a knot-tying task from an online video and rebuild it in simulation with [RoboSimStudio](https://robosimstudio.github.io/) (RSS, Newton physics). A [Graph-as-Policy](https://graph-robots.github.io/gap/) (GaP) computation graph then drives a YAM bimanual robot through the task. Codex agents write the graph and improve it by rehearsing it on varied task instances in parallel on Daytona: they localize each failure to a node and edit the graph to raise the success rate and cut cycle time.
 
-Status (2026-10-22): work in progress. From-straight knot tying is still unsolved. The results below distinguish it from tightening a knot already tied at the start. The updated results page with videos is in [site/index.html](site/index.html). The older claude.ai artifact has not been synced and contains superseded results.
+Status (2026-10-22): work in progress. From-straight knot tying is still unsolved. The results below distinguish it from tightening a knot already tied at the start. The [live results website](https://imbernoulli.github.io/gap-knot/) includes videos and the latest closed-loop diagnostics. The older claude.ai artifact has not been synced and contains superseded results.
 
 ## Results so far
 
@@ -41,7 +43,7 @@ The old tightening curve (0/10 → 9/10) is withdrawn because it accepted airbor
 |---|---|
 | `knotlab/` | The tasks on RSS: double coin and overhand geometry, the Gauss-code knot diagram used as the success test, the `rope.*` tools, the episode runner, the rope skill library (`skills.py`), the laying planner, the demo-plan extraction, and the under-crossing segment lab |
 | `harness/` | The GaP self-learning loop: Codex orchestration, skill and refiner agents (`codex_agent.py`, `prompts/`); per-node and per-crossing failure localization (`analyze.py`); paired rehearsal of candidates; strategy (`strategy.py`); briefs and docs for the agents (`docs/`) |
-| `fleet/` | Daytona CPU sandbox pool: a snapshot with RSS installed, one rollout per 2-vCPU sandbox, retries, teardown |
+| `fleet/` | Daytona CPU sandbox pool: RSS snapshots, configurable CPU/memory, one rollout per sandbox, retries, teardown |
 | `graphs/` | GaP baselines, the previously refined tightening graphs (`tighten_g1`, `tighten_g2`), and the `thread_feedback` segment probe |
 | `skills/rope/` | The rope skill bundle (SKILL.md), measured behaviour, lobe-laying results |
 | `video/` | Storyboards of the source clips, the Real2Sim report and scene, the extracted demonstration plan |

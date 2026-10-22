@@ -1,0 +1,10 @@
+{
+  "short": 0.025,
+  "lift": 0.075,
+  "grasp_back": 0.04,
+  "tilt": 75,
+  "z": 0.022,
+  "pass": 0.05,
+  "finish": "regrasp_exit",
+  "exit_distance": 0.065
+}

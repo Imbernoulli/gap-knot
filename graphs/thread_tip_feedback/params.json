@@ -1,0 +1,13 @@
+{
+  "mode": "tip_feedback_pass",
+  "short": 0.025,
+  "lift": 0.05,
+  "helper_ds": 0.02,
+  "grasp_back": 0.04,
+  "tilt": 75,
+  "z": 0.028,
+  "pass": 0.02,
+  "inset": 0.015,
+  "max_retargets": 3,
+  "tip_tolerance": 0.025
+}

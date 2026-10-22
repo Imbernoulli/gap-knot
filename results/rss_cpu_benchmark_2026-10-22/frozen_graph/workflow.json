@@ -1,0 +1,14 @@
+{
+  "version": 3,
+  "meta": {"name": "grasp_probe", "description": "Single RSS-style material-point grasp diagnostic."},
+  "nodes": {"probe": {"type": "subgraph", "ref": "probe_sg"}, "done": {"type": "end", "status": "success"}, "abort": {"type": "end", "status": "failure"}},
+  "edges": [["START", "probe"]],
+  "conditional_edges": {"probe": {"router_field": "exit", "mapping": {"done": "done", "failed": "abort"}}},
+  "subgraphs": {"probe_sg": {
+    "skill": "generic", "inputs": {}, "outputs": {},
+    "nodes": {"act": {"type": "script", "script": "scripts/probe.py"}, "done": {"type": "noop"}},
+    "edges": [["START", "act"], ["done", "END"]],
+    "conditional_edges": {"act": {"router_field": "route", "mapping": {"done": "done"}}},
+    "exit": {"router_field": null, "success_values": ["done"]}, "on_error": "failed"
+  }}
+}
