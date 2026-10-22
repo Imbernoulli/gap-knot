@@ -36,10 +36,12 @@ def _rope(ax, p, *, ghost=False):
             a = segs[k][:, [1, 0]]
             ax.plot(-a[:, 0], a[:, 1], color="white", lw=6, alpha=0.55, solid_capstyle="round", zorder=1)
         return
-    for k in np.argsort(zc):
+    # Lowest first, and the layer is the RANK in height (not the segment's index along the rope, which drew
+    # every later strand on top: any knot then looked like the unknot).
+    for rank, k in enumerate(np.argsort(zc)):
         a = segs[k][:, [1, 0]]
-        ax.plot(-a[:, 0], a[:, 1], color="#3a1020", lw=7.5, solid_capstyle="round", zorder=10 + 2 * k)
-        ax.plot(-a[:, 0], a[:, 1], color=plt.cm.spring(0.15 + 0.7 * s[k] / s[-1]), lw=5.5, solid_capstyle="round", zorder=11 + 2 * k)
+        ax.plot(-a[:, 0], a[:, 1], color="#3a1020", lw=7.5, solid_capstyle="round", zorder=10 + 2 * rank)
+        ax.plot(-a[:, 0], a[:, 1], color=plt.cm.spring(0.15 + 0.7 * s[k] / s[-1]), lw=5.5, solid_capstyle="round", zorder=11 + 2 * rank)
 
 
 def frame(ax, rope_w, hands_row, lay, title):

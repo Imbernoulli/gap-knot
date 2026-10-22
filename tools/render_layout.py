@@ -14,10 +14,11 @@ def draw(ax, pts, lay, title, label_cross=False):
     p = pts + W
     segs = np.stack([p[:-1, :2], p[1:, :2]], axis=1); zc = 0.5 * (p[:-1, 2] + p[1:, 2])
     s = diagram.arc_length(pts)
-    for k in np.argsort(zc):
+    # Lowest first, layered by RANK in height (the segment's index drew every later strand on top).
+    for rank, k in enumerate(np.argsort(zc)):
         a = segs[k][:, [1, 0]]
-        ax.plot(-a[:, 0], a[:, 1], color="white", lw=10, solid_capstyle="round", zorder=2 * k)
-        ax.plot(-a[:, 0], a[:, 1], color=plt.cm.viridis(s[k] / s[-1]), lw=7, solid_capstyle="round", zorder=2 * k + 1)
+        ax.plot(-a[:, 0], a[:, 1], color="white", lw=10, solid_capstyle="round", zorder=2 * rank)
+        ax.plot(-a[:, 0], a[:, 1], color=plt.cm.viridis(s[k] / s[-1]), lw=7, solid_capstyle="round", zorder=2 * rank + 1)
     for name, q in lay["pins"].items():
         q = q + W
         ax.plot(-q[1], q[0], "o", color="crimson", ms=9, zorder=10**6)
