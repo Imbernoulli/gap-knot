@@ -21,7 +21,7 @@ Status (2026-10-22): work in progress. From-straight knot tying is still unsolve
   - laying the strand back over the end;
   - a tilted (60–75°) gripper;
   - the person's local tuck extracted from the video.
-- **Result.** The under-crossing was made in **1 of 60** episodes on a graspable cord.
+- **Result.** The **local under-crossing action** was made in **1 of 60** episodes on a graspable cord. Those episodes started from a pre-built loop; this was not a complete knot from a straight rope, and the crossing was not retained through release.
 - **Common cause.** Lifting or pinching a strand next to the first crossing moves that crossing, and at this friction every pull-through drags the whole loop.
 - **Lead.** Holding the first crossing down (a third hand, or the pins the double coin video uses) is the most promising fix.
 
