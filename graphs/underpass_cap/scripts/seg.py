@@ -110,25 +110,33 @@ def run(ctx):
         report["tip_vertical_retreat"]=_go(ctx,1,retreat_xy,.10,rot,steps=320)
         side_xy=retreat_xy+np.array([0.025,-0.025])
         report["tip_side_clear"]=_go(ctx,1,side_xy,.10,rot,steps=260)
-    state("under_retreat")
+    _, retreat_row=state("under_retreat")
+    anchor_gate=float(retreat_row.get("anchor_drift",{}).get("xyz",1.0)) <= .025
+    report["anchor_gate"]={"threshold_m":.025,"passed":anchor_gate,
+                            "drift_m":retreat_row.get("anchor_drift",{}).get("xyz")}
     if mode == "A":
         report["x3_action"]={"skipped":True,"reason":"hold c2 after under-pass; no broad X3 motion"}
+    elif not anchor_gate:
+        # Never trade a drifting helper for a prettier far-side trace.
+        report["x3_action"]={"skipped":True,"reason":"anchor_drift_gate"}
     else:
-        # B) one short, feedback-retargeted far-side move.  Re-capture after
-        # the wrist/vertical retreat, then use the latest material point and
-        # tangent for the target.  A 20 mm exit replaces the unstable 55 mm
-        # sweep; lag is a hard diagnostic gate, not a success claim.
+        # B) high-route only: re-read the live c3 point/tangent, move the
+        # held tail laterally while high (0.10 m), then descend at the short
+        # outside target.  There is no low pass_xy->c3 sweep.
         tip_cap=tip_feedback.capture(ctx,1,s=tip_s)
-        x3,_a3_u=_xy_heading(ctx,float(c3["s_a"]),ref)
-        u3=b3_ref.copy()
-        geom=tip_feedback.point_state(ctx,s=tip_s,inset=.02)
-        live_u=np.asarray(geom["tangent"][:2],float); live_u/=max(np.linalg.norm(live_u),1e-9)
-        if float(live_u@u3)<0: live_u=-live_u
-        exit_xy=x3+min(float(p.get("x3_out",.02)),.02)*live_u
-        report["x3_geometry"]={"x3":x3.tolist(),"u3_target":u3.tolist(),"live_tip_tangent":live_u.tolist(),"exit":exit_xy.tolist()}
-        report["x3_retarget"]=tip_feedback.move_tip(ctx,arm_id=1,s=tip_s,target_xy=exit_xy,capture=tip_cap,height=.035,speed=.10,inset=.02,verify=True)
-        report["x3_retarget"]["lag_gate"]=(float(report["x3_retarget"].get("drift",{}).get("xy",1.0))<=.025)
-        state("x3_short_feedback",tip_past_x3=float((np.asarray(ctx.tool("rope.point",s=tip_s)["position"][:2])-x3)@u3))
+        x3,a3_u=_xy_heading(ctx,float(c3["s_a"]),ref)
+        a3_u=np.asarray(a3_u,float); a3_u/=max(np.linalg.norm(a3_u),1e-9)
+        geom=tip_feedback.point_state(ctx,s=float(c3["s_a"]),inset=.02)
+        live_c3_tan=np.asarray(geom["tangent"][:2],float); live_c3_tan/=max(np.linalg.norm(live_c3_tan),1e-9)
+        # The remote B tangent chooses the side outside the eye; the live A
+        # tangent is retained in the report so this choice is auditable.
+        outside=b3_ref.copy(); outside/=max(np.linalg.norm(outside),1e-9)
+        target_xy=x3+min(float(p.get("x3_out",.02)),.02)*outside
+        report["x3_geometry"]={"x3_live":x3.tolist(),"a3_tangent_live":live_c3_tan.tolist(),"outside_b_ref":outside.tolist(),"target":target_xy.tolist()}
+        report["x3_high_move"]=tip_feedback.move_tip(ctx,arm_id=1,s=tip_s,target_xy=target_xy,capture=tip_cap,height=.10,speed=.10,inset=.02,verify=True)
+        report["x3_low_drop"]=tip_feedback.move_tip(ctx,arm_id=1,s=tip_s,target_xy=target_xy,capture=tip_cap,height=.03,speed=.10,inset=.02,verify=True)
+        report["x3_action"]={"lag_gate":float(report["x3_low_drop"].get("drift",{}).get("xy",1.0))<=.025}
+        state("x3_high_drop",tip_past_x3=float((np.asarray(ctx.tool("rope.point",s=tip_s)["position"][:2])-x3)@outside))
     # Release tip in place, then move sideways/up before lowering helper. This
     # separates release slip from helper-anchor drift.
     tcp,_=skills.ee(ctx,1); rel={}

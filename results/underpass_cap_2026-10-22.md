@@ -18,3 +18,9 @@ The experiments used Daytona 8 vCPU / 16 GiB sandboxes, two workers, and `mu_cab
 The softer cord can briefly produce the desired X2 relation, but the helper anchor moves beyond the 25 mm drift gate before the far-side action and the relation is lost after release. The harder cord's pass is reachable but misses the crossing and slips badly. Neither run is a knot success; neither run begins from a straight cord.
 
 Code and exact rerunnable graph: `graphs/underpass_cap/`. Raw Daytona episodes are kept under the ignored `runs/underpass_cap_v2/` directory; the manifest records the 8-vCPU shape and paired variants.
+
+## Stabilization follow-ups (v3/v4)
+
+Two E=1e5 follow-ups were run in parallel on 8-vCPU sandboxes. Both first lifted the tip to 0.10 m and moved it sideways before considering X3; B would have used a high move to a live c3 target and a 20 mm outside offset, followed by a 0.03 m drop. A skips X3 by design. A's post-retreat anchor drift was 22.9 mm (gate passed), but the under relation was already flipped/missing. B's under stage briefly had two crossings, but c2 was missing and the post-retreat drift was 40.5 mm, so the strict 25 mm gate rejected X3. After release and three seconds, both remained `c2=missing`; neither is a success.
+
+The gate is deliberate: a high-side trajectory is not evaluated when the helper arch has already drifted. The observed transient crossing in the earlier E=1e5 run is therefore not promoted to a reproducible cap.
