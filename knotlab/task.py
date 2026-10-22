@@ -199,9 +199,10 @@ def diagram_knot_length(points: np.ndarray) -> float:
 
 
 TIGHT_FRACTION = float(os.environ.get("KNOTLAB_TIGHT", "0.75"))
-REST_HEIGHT = 0.03
-"""Every node of a knot that counts as pulled tight lies within this height of the bench [m] (a resting 10 mm cord's
-crossings reach ~20 mm): it has been set down and let go."""
+REST_HEIGHT = 0.05
+"""Every node of a knot that counts as pulled tight lies within this height of the bench [m]: it has been set down
+and let go. Measured (runs/tg_reeval): a tight overhand knot of this 10 mm cord, released and settled, stacks its
+strands up to 28-42 mm; one the hands still hold is 72-126 mm up. (A first guess of 30 mm rejected resting knots.)"""
 """A pulled-tight overhand knot holds at most this fraction of the loose knot's rope between its crossings."""
 
 _REGISTERED: set[str] = set()
