@@ -1,0 +1,19 @@
+{
+  "short": 0.025,
+  "lift": 0.075,
+  "grasp_back": 0.04,
+  "tilt": 75,
+  "z": 0.022,
+  "pass": 0.005,
+  "finish": "draw_over",
+  "exit_distance": 0.065,
+  "draw_distance": 0.055,
+  "draw_height": 0.05,
+  "helper_open": 0.095,
+  "helper_side_clear": true,
+  "grip_retries": 3,
+  "outer_clearance": 0.045,
+  "outer_tangent": 0.04,
+  "route_speed": 0.12,
+  "max_drift": 0.025
+}

@@ -1,0 +1,91 @@
+{
+  "version": 3,
+  "meta": {
+    "name": "thread_far_side",
+    "description": "Prepared-loop live far-side waypoint probe. Robot-only, no straight-rope success claim."
+  },
+  "nodes": {
+    "seg": {
+      "type": "subgraph",
+      "ref": "seg_sg"
+    },
+    "done": {
+      "type": "end",
+      "status": "success"
+    },
+    "abort": {
+      "type": "end",
+      "status": "failure",
+      "recovery": [
+        {
+          "tool": "robot.open_gripper",
+          "inputs": {
+            "arm_id": 0
+          }
+        },
+        {
+          "tool": "robot.open_gripper",
+          "inputs": {
+            "arm_id": 1
+          }
+        }
+      ]
+    }
+  },
+  "edges": [
+    [
+      "START",
+      "seg"
+    ]
+  ],
+  "conditional_edges": {
+    "seg": {
+      "router_field": "exit",
+      "mapping": {
+        "done": "done",
+        "failed": "abort"
+      }
+    }
+  },
+  "subgraphs": {
+    "seg_sg": {
+      "skill": "generic",
+      "inputs": {},
+      "outputs": {},
+      "nodes": {
+        "act": {
+          "type": "script",
+          "script": "scripts/seg.py"
+        },
+        "done": {
+          "type": "noop"
+        }
+      },
+      "edges": [
+        [
+          "START",
+          "act"
+        ],
+        [
+          "done",
+          "END"
+        ]
+      ],
+      "conditional_edges": {
+        "act": {
+          "router_field": "route",
+          "mapping": {
+            "done": "done"
+          }
+        }
+      },
+      "exit": {
+        "router_field": null,
+        "success_values": [
+          "done"
+        ]
+      },
+      "on_error": "failed"
+    }
+  }
+}
