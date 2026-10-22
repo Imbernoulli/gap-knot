@@ -44,11 +44,12 @@
 }
 * { box-sizing: border-box; }
 body {
-  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.7;
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.7;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 40px 72px;
 }
 .wrap { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+.wrap > *, section > *, header > * { min-width: 0; }
 .prose { max-width: 70ch; }
 h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.3; margin: 0; }
 h1 { font-size: clamp(30px, 5vw, 44px); letter-spacing: 0.01em; }
@@ -99,7 +100,7 @@ td.num { font-family: var(--mono); white-space: nowrap; }
 tr.accepted td { background: var(--accent-soft); }
 
 /* gauss code chips */
-.gauss { font-family: var(--mono); font-size: 13px; background: var(--accent-soft); color: var(--accent); padding: 1px 8px; border-radius: 6px; white-space: nowrap; }
+.gauss { font-family: var(--mono); font-size: 13px; background: var(--accent-soft); color: var(--accent); padding: 1px 8px; border-radius: 6px; overflow-wrap: anywhere; }
 
 /* chart */
 .charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
@@ -117,7 +118,9 @@ tr.accepted td { background: var(--accent-soft); }
 .note { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 14px 18px; font-size: 15px; max-width: 78ch; display: flex; flex-direction: column; gap: 8px; }
 .note.bad { border-left-color: var(--bad); }
 ol, ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
-pre.mermaid { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; overflow-x: auto; margin: 0; font-size: 14px; }
+.pipeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; padding: 0; list-style-position: inside; }
+.pipeline li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; font-size: 14px; }
+.pipeline small { display: block; margin-top: 6px; color: var(--muted); }
 
 @media (max-width: 760px) {
   .tasks, .row2, .row3, .charts { grid-template-columns: minmax(0, 1fr); }
@@ -130,7 +133,7 @@ pre.mermaid { background: var(--surface); border: 1px solid var(--line); border-
 
 <header>
   <span class="eyebrow">RoboSimStudio × Graph-as-Policy · YAM 双臂 · 进展报告 2026-10-22</span>
-  <h1>从网上的视频，到会自己练习打结的双臂机器人</h1>
+  <h1>双臂机器人打结实验：收紧与穿绳</h1>
   <p class="lead">我们从视频里选打结任务，用 RoboSimStudio（RSS，Newton 物理）把场景和绳子重建进仿真。Codex 智能体按 Graph-as-Policy（GaP）的方式写出机器人计算图，在 Daytona 上用大量变化的任务实例并行排练，把失败定位到具体节点再改图，以此提高成功率、缩短用时。</p>
   <div class="meta">
     <span>代码：<a href="https://github.com/Imbernoulli/gap-knot">github.com/Imbernoulli/gap-knot</a>（私有）</span>
@@ -142,10 +145,10 @@ pre.mermaid { background: var(--surface); border: 1px solid var(--line); border-
   <h2 id="glance">三个任务，现在的状态</h2>
   <div class="tasks">
     <div class="task">
-      <span class="pill warn"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2v5M6 9.2v.8" fill="none" stroke="currentColor" stroke-width="2"/></svg>重新测量中</span>
+      <span class="pill ok"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6l3 3 5-6" fill="none" stroke="currentColor" stroke-width="2"/></svg>松手落桌验证通过</span>
       <h3>单结收紧整形</h3>
-      <div class="big">重测中</div>
-      <p>视频第 3 步：双手把松单结拉紧。之前报的"0 → 9/10"作废：那是在结还被两只手提在空中时判的成功。修复落桌检测的坐标错误后，正在同一批 10 个实例上重测三版图。旧成功率和旧 0/10 均不作最终结果。</p>
+      <div class="big">6 / 10</div>
+      <p>视频第 3 步：双手把预先打好的松单结拉紧。完整判据下 G0、G1、G2 分别为 0/10、5/10、6/10。这是复用训练实例的配对重测，不代表已经能从直绳打结。</p>
     </div>
     <div class="task">
       <span class="pill bad"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" fill="none" stroke="currentColor" stroke-width="2"/></svg>未做成</span>
@@ -170,8 +173,8 @@ pre.mermaid { background: var(--surface); border: 1px solid var(--line); border-
 </section>
 
 <section aria-labelledby="tighten">
-  <span class="eyebrow">结果 · 重新测量中</span>
-  <h2 id="tighten">单结收紧：之前的成功率作废，正在按正确的判据重测</h2>
+  <span class="eyebrow">结果 · 完整判据下的配对重测</span>
+  <h2 id="tighten">单结收紧：松手退开、落桌后，G2 成功 6/10</h2>
   <p class="prose">起点是 Howcast 视频 33 s 处的松单结（机器人不负责打结，只负责拉紧）。成功要求：仍是三叶结（任一手性），结里的绳长收到起始的 75% 以下，最高点离桌不超过 5 cm；同时两手开口至少 5 cm、工具中心离每个绳节点至少 6 cm，全部条件持续满足 1 秒。</p>
   <div class="note bad">
     <h3>之前的"0 → 9/10、80.6 s → 62.1 s"为什么作废</h3>
@@ -183,27 +186,29 @@ pre.mermaid { background: var(--surface); border: 1px solid var(--line); border-
   </figure>
   <div class="tablebox">
     <table>
-      <thead><tr><th>图（同一批 10 个实例）</th><th>按"松手落桌、最高点 ≤ 3 cm"</th><th>绳长收到起始的</th><th>结构</th></tr></thead>
+      <thead><tr><th>图（同一批 10 个实例）</th><th>完整运行时判据</th><th>成功局平均仿真用时</th><th>成功局最终核对</th></tr></thead>
       <tbody>
-        <tr><td>G0 baseline</td><td class="num">0/10</td><td class="num">79–102%</td><td>10 局行列式均为 3（仍是单结）</td></tr>
-        <tr><td>G1（之前接受的 refiner c）</td><td class="num">0/10</td><td class="num">65–122%</td><td>行列式 3；有 1 局多出交叉</td></tr>
-        <tr><td>G2（之前接受的 refiner a）</td><td class="num">0/10</td><td class="num">60–121%（8 局 ≤ 72%）</td><td>行列式 3；有 2 局多出交叉</td></tr>
+        <tr><td>G0 baseline</td><td class="num">0/10</td><td class="num">—</td><td>无成功局</td></tr>
+        <tr><td>G1（之前接受的 refiner c）</td><td class="num">5/10</td><td class="num">105.92 s</td><td>5/5 均为三叶结，双手张开退开</td></tr>
+        <tr><td>G2（之前接受的 refiner a）</td><td class="num">6/10</td><td class="num">65.42 s</td><td>6/6 均为三叶结，双手张开退开</td></tr>
       </tbody>
     </table>
   </div>
-  <p class="prose">G2 的 8 局其实已经收到了 75% 以下，失败卡在"最高点 ≤ 3 cm"上。这个 3 cm 是我没测就定的：实测松手静止后的紧结，绳在结里层层叠起，最高点 28–42 mm；被手提着的结是 72–126 mm。门槛按实测改为 5 cm 后，发现成功检测还把世界高度当成离桌高度，导致任务判失败、机器人观测却判成功。坐标错误已修复。另一次审计发现，只有高度条件还会在夹爪退开前触发成功；现在加入了两手张开并离绳至少 6 cm 的连续检测，正在对同一批实例重跑。上表的旧 0/10 也不能作为最终成功率。</p>
+  <p class="prose">三版现有图使用完全相同的随机种子 10–19；这批实例在旧训练中用过，因此这是修正判据后的配对复核，不是新的学习曲线或留出泛化测试。样本只有每版 10 局。用时只统计各自成功的局，成功集合不同，不能据此当作同一批成功局的直接提速比较。</p>
+  <p class="prose">高度门槛按松手后的堆叠绳形定为 5 cm：静止紧结最高点实测 28–42 mm，之前被提着的结为 72–126 mm。重测还修复了世界高度与离桌高度混用的问题，并加入两手张开、退开后的连续检测。之前的成功率及中途错误坐标下的 0/10 表均已撤下。30 局判定、配置和精确末帧坐标见 <a href="https://github.com/Imbernoulli/gap-knot/tree/main/results">结果档案</a>；运行时保持判定与末帧复核分别保留。</p>
 
   <div class="row2">
     <figure>
       <video src="media/tighten_baseline.mp4" controls muted playsinline preload="metadata" poster="media/tighten_baseline_keys.jpg" aria-label="baseline 图的俯视回放"></video>
-      <figcaption><b>G0 baseline，失败。</b>白色虚影是参考的松结。第 3 轮时左边尾巴还挂在半空（离桌约 6 cm），捏取仍降到桌面高度，从绳下合拢抓空，这一轮没拉成，结又松回去一些。最后停在起始绳长的 86%。</figcaption>
+      <figcaption><b>G0 baseline，新判据下失败，71.4 s。</b>松单结预先摆好；白色虚影是参考形状。最终结内绳长仍为初始的 81%，未达到 75% 的收紧要求。</figcaption>
     </figure>
     <figure>
       <video src="media/tighten_learned.mp4" controls muted playsinline preload="metadata" poster="media/tighten_learned_keys.jpg" aria-label="学习后图的俯视回放"></video>
-      <figcaption><b>G2，旧判据下的回放，成功标签已撤回。</b>两手先把结提离桌面再向外拉，每轮根据结的当前长度决定下一轮拉多远，按绳子实际所在高度去抓。这段回放在空中触发了旧成功条件，不能证明松手落桌后成功。</figcaption>
+      <figcaption><b>G2，通过完整判据，62.2 s。</b>这次新回放包含松手退开和落桌验证：两手开口 9.5、9.4 cm，工具中心离绳 6.9、7.9 cm，全部条件持续满足 1 秒。起点已有单结，机器人只负责收紧。</figcaption>
     </figure>
   </div>
 
+  <figure><img src="media/tighten_learned_oblique.jpg" alt="通过完整判据的 G2 收紧回放：斜视图与离桌高度" loading="lazy"><figcaption>同一有效成功局的斜视关键帧。最终两手张开、退开，结回到桌面。图中的手是工具中心标记，绳形来自物理仿真的逐帧数据。</figcaption></figure>
   <div class="note">
     <h3>refiner 是怎么找到问题的</h3>
     <p>它们只看排练记录，不能自己跑仿真。第 0 轮的 refiner 从调用记录里找到：第 3 轮 <code>rope.point</code> 报告左尾巴在 z = 0.8175 m，而捏取仍然下到 z = 0.7635 m 并超时，抬起后绳子反而往下走。于是改成在绳子实际所在的高度抓、抓空换点重抓、每轮按剩余松紧调整拉动距离。旧判据的成功率超过 30% 后，分工规则自动把一个 refiner 切到"缩短用时"上，G2 就是这样来的。</p>
@@ -213,18 +218,17 @@ pre.mermaid { background: var(--surface); border: 1px solid var(--line); border-
 <section aria-labelledby="method">
   <span class="eyebrow">方法</span>
   <h2 id="method">从视频到自学习的整条管线</h2>
-  <pre class="mermaid">
-flowchart LR
-  V["网上视频<br/>Howcast / Art Sprouts"] --> R["RSS Real2Sim<br/>live 页面 + ./ctl compare/check"]
-  R --> T["任务 + 变化实例<br/>Newton · SuperDex 绳 · YAM 双臂"]
-  T --> O["Codex 编排 agent<br/>拆子图"]
-  O --> S["Codex skill agents<br/>并行实现子图"]
-  S --> G["GaP 计算图<br/>workflow.json + scripts"]
-  G --> D["Daytona 并行排练<br/>每局 1 台 2 vCPU 沙箱"]
-  D --> A["失败定位<br/>节点 · 交叉 · 绳形"]
-  A --> F["3 个 Codex refiner<br/>不同策略各改一版"]
-  F --> D
-  </pre>
+  <ol class="pipeline" aria-label="从视频到图策略的自学习流程">
+    <li><b>网上视频</b><small>Howcast / Art Sprouts</small></li>
+    <li><b>RSS Real2Sim</b><small>live 页面上重建，再用 compare / check 核对</small></li>
+    <li><b>任务与变化实例</b><small>Newton · SuperDex 绳 · YAM 双臂</small></li>
+    <li><b>Codex 编排</b><small>拆成可定位失败的子图</small></li>
+    <li><b>Codex skill agents</b><small>并行实现各个子图</small></li>
+    <li><b>GaP 计算图</b><small>workflow.json 与执行脚本</small></li>
+    <li><b>Daytona 并行排练</b><small>每局一台 2 vCPU 沙箱</small></li>
+    <li><b>失败定位</b><small>节点调用、交叉关系与绳形</small></li>
+    <li><b>3 个 Codex refiner</b><small>各改一版，回到第 7 步配对排练</small></li>
+  </ol>
   <div class="row3">
     <div class="stack"><h3>失败定位</h3><p class="muted">每局记录每个节点的工具调用和返回值、每 0.5 s 的绳子状态和交叉列表。分析器把失败归到具体子图和返回原因，把每个目标交叉标成"对 / 压挑反了 / 缺失"，并标出它是在哪个节点做出来的，再配一张俯视关键帧图给 refiner 看。</p></div>
     <div class="stack"><h3>成功判据</h3><p class="muted">从上往下看绳子的投影，沿绳走一遍得到 Gauss 码，例如单结是 <span class="gauss">1U 2O 3U 1O 2U 3O</span>（或它的镜像）。双钱结是开口的 3 股 4 弯 Turk's head，要求 16 位码完全一致：<span class="gauss">1O 2U 3O 4U 5O 6U 2O 7U 4O 8U 6O 1U 7O 3U 8O 5U</span>。</p></div>
@@ -291,7 +295,7 @@ flowchart LR
     <li>捏取的"抓住了"判据阈值过高，把抓住判成没抓住，收紧任务因此一次都没拉。</li>
     <li>任务的成功判据起初没读到"收紧"条件，松结一开局就被判成功；发现后立即修正重跑。</li>
     <li>俯视渲染曾按绳段序号叠放，导致图片里的上下关系画反。已改为按实际高度绘制，并补充斜视图与拓扑核对。</li>
-    <li>收紧判据曾接受悬空的结；增加落桌高度条件后，又把世界高度与离桌高度混用，产生假失败。现已统一坐标系并补回归测试，重新排练。</li>
+    <li>收紧判据曾接受悬空的结；增加落桌高度条件后，又把世界高度与离桌高度混用，产生假失败。现已统一坐标系、加入张手退开检查并补回归测试，完成 30 局配对重测。</li>
     <li>收紧时贴着桌面拉，只是把结拖着走（每轮收紧约 1%）；改成 RSS 测试和视频里的做法，先提起再拉，每轮约 8%。</li>
   </ul>
 </section>
@@ -300,9 +304,9 @@ flowchart LR
   <span class="eyebrow">下一步</span>
   <h2 id="next">接下来</h2>
   <ul class="prose">
-    <li>先修复成功检测的世界坐标 / 桌面坐标混用，配对重跑三版收紧图；旧学习曲线已撤下。</li>
+    <li>从直绳打出一个普通单结仍是主要目标。收紧任务已完成判据修复与三版图的配对重测；下一项缺口是把穿绳动作保持到松手以后。</li>
     <li>为完整打结补一个能"按住交叉"的条件：双钱结视频里的大头针本身就是这个作用，可以作为工装加入任务，再单独排练下穿。</li>
-    <li>新对照：重新测量穿入位置、先按住第一个交叉再准备绳头，两组共 6 局仍未做出下穿。下一步要先让绳头准备动作维持绳圈，不能只优化最后的穿入位置。</li>
+    <li>新对照：重新测量穿入位置、先按住第一个交叉再准备绳头，先完成的两组共 6 局失败。随后先抓绳头再抬绳，曾在穿入后同时保住两处正确交叉，但松手后散掉；继续抽出绳头也未保住。8 局最终均失败，尚无从直绳打结的成功。</li>
   </ul>
 </section>
 

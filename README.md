@@ -2,13 +2,13 @@
 
 We take a knot-tying task from an online video and rebuild it in simulation with [RoboSimStudio](https://robosimstudio.github.io/) (RSS, Newton physics). A [Graph-as-Policy](https://graph-robots.github.io/gap/) (GaP) computation graph then drives a YAM bimanual robot through the task. Codex agents write the graph and improve it by rehearsing it on varied task instances in parallel on Daytona: they localize each failure to a node and edit the graph to raise the success rate and cut cycle time.
 
-Status (2026-10-22): work in progress. From-straight knot tying is still unsolved. The results below distinguish it from tightening a knot already tied at the start. A results page with videos is in `site/` (published privately as a claude.ai artifact).
+Status (2026-10-22): work in progress. From-straight knot tying is still unsolved. The results below distinguish it from tightening a knot already tied at the start. The updated results page with videos is in [site/index.html](site/index.html). The older claude.ai artifact has not been synced and contains superseded results.
 
 ## Results so far
 
 | Task (source video) | What the robot must do | Outcome |
 |---|---|---|
-| **Pull an overhand knot tight** (Howcast, [youtu.be/SwdJ5op25SM](https://www.youtube.com/watch?v=SwdJ5op25SM), step 3) | From a loose overhand knot, draw it up to ≤ 75% of its rope-in-knot, return it to the table and hold for 1 s | **Being re-evaluated.** The earlier 0/10 → 9/10 curve is withdrawn: it accepted a knot still held in the air. The first re-evaluation also mixed world height with height above the bench, causing false failures. The coordinate conversion is fixed and paired re-evaluation is running. |
+| **Pull an overhand knot tight** (Howcast, [youtu.be/SwdJ5op25SM](https://www.youtube.com/watch?v=SwdJ5op25SM), step 3) | From a loose overhand knot, draw it up to ≤ 75% of its rope-in-knot, return it to the table, open and withdraw both hands, and hold for 1 s | **G0: 0/10; G1: 5/10; G2: 6/10.** Paired re-evaluation of existing graphs on reused training seeds 10–19. Mean simulated time among successes: G1 105.92 s, G2 65.42 s. This is not a new learning run or a held-out generalization test. |
 | Overhand knot (单结) from a straight rope (same video, steps 1–3) | Make a loop, pass the end under, pull | **Not achieved: 0 successes.** Five self-learning iterations, a 16-instance held-out test (0/16), and a segment-level study of the under-crossing all failed (below). |
 | Double coin knot (双钱结) on a pinned board (Art Sprouts, [youtu.be/dg6XrRY_FzI](https://www.youtube.com/watch?v=dg6XrRY_FzI)) | Lay two lobes round pins, weave the tails over and under | **Not achieved: 0 successes.** The graphs never form the 8-crossing weave. |
 
@@ -31,7 +31,9 @@ Status (2026-10-22): work in progress. From-straight knot tying is still unsolve
 
 It set a 10 mm cord, and E = 2e4 Pa from the loose knot's settled shape. At that stiffness the YAM's pads cannot hold the SuperDex rod (a 5 cm carry moved the pinched point 4 mm, against 49 mm at 1e5). The task therefore keeps 1e5, the value RSS's own knot example uses.
 
-The `thread_feedback` graph remeasures the crossing after moving the rope; it is a threading segment probe from `start_shape=pre_thread`, not a demonstration of tying a knot from a straight rope.
+The `thread_feedback` graph remeasures the crossing after moving the rope; it is a threading segment probe from `start_shape=pre_thread`, not a demonstration of tying a knot from a straight rope. Eight follow-up probes all failed at the end. One made the intended under-crossing while retaining the first crossing immediately after the pass, then lost that structure on release. Variants, graphs, and intermediate diagnostics are archived in [results/threading_2026-10-22](results/threading_2026-10-22/README.md).
+
+The old tightening curve (0/10 → 9/10) is withdrawn because it accepted airborne knots. Later diagnostic runs also used an incorrect height coordinate. The corrected runtime requires every rope node ≤5 cm above the bench, both jaws ≥5 cm open, both TCPs ≥6 cm from every rope node, and the trefoil/length conditions continuously for one second. [The audit](results/README.md) links all 30 verdicts, variants, and exact final rope coordinates.
 
 ## What is here
 
@@ -55,6 +57,20 @@ The `thread_feedback` graph remeasures the crossing after moving the rope; it is
    python harness/selflearn.py --run runs/tg --graph graphs/tighten_v0 --knot overhand_tighten --max-steps 9000 --iters 8 --n 10 --cands 3
    ```
 4. **Draw an episode.** `python tools/render_episode.py runs/x/ep000000 --mp4`
+
+## Recheck tightening with the corrected grader
+
+```sh
+python tools/reevaluate_tighten.py --out runs/tighten-check --offset 10 --n 10 --workers 6 --export results/tighten-check.json
+```
+
+Use an interpreter with the Daytona SDK. This compares `tighten_v0`, `tighten_g1`, and `tighten_g2` on exactly the same variants, deletes its sandboxes, and exports verdicts plus final rope nodes. The small unit suite runs with `python -m unittest discover -v`.
+
+To open the report as one file with embedded images and videos:
+
+```sh
+python tools/pack_site.py --out runs/report.html
+```
 
 ## Credits
 

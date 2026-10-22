@@ -200,5 +200,291 @@
     "c2_b_s": null,
     "under_made": false,
     "experiment": "anchor_compare"
+  },
+  {
+    "experiment": "follow_through",
+    "graph": "grip_before_lift",
+    "variant": {
+      "seed": 0,
+      "knot": "overhand",
+      "radius": 0.005,
+      "young_modulus": 100000.0,
+      "axial_stiffness": 300.0,
+      "mu_cable": 1.0,
+      "board_x": -0.07,
+      "board_y": 0.0,
+      "board_yaw": 0.0,
+      "pin_jitter": 0.0,
+      "splay": 0.05,
+      "drop": 0.14,
+      "side": 0.15,
+      "up": 0.16,
+      "fold": 0.07,
+      "lay_noise": 0.0,
+      "start_shape": "pre_thread",
+      "knot_size": 0.0
+    },
+    "task_success": false,
+    "sim_time_s": 52.38,
+    "error": "",
+    "determinant_with_diagram_closure": 1,
+    "crossings": 6,
+    "code": "1O 2U 3U 3O 2O 4O 5O 6U 4U 1U 5U 6O",
+    "c1": "missing",
+    "c2": "ok",
+    "c2_b_s": 0.599,
+    "under_made": false,
+    "phase_report": {
+      "aim": [
+        {
+          "ok": true,
+          "failure": null,
+          "error": null
+        },
+        {
+          "ok": true,
+          "failure": null,
+          "error": null
+        }
+      ],
+      "before": {
+        "crossings": 1,
+        "code": "1U 1O",
+        "c1": "ok",
+        "c2": "missing",
+        "c2_b_s": null,
+        "under_made": false
+      },
+      "anchor": {
+        "held": false,
+        "rise": 0.0011
+      },
+      "after_anchor": {
+        "crossings": 1,
+        "code": "1U 1O",
+        "c1": "ok",
+        "c2": "missing",
+        "c2_b_s": null,
+        "under_made": false
+      },
+      "after_aim": {
+        "crossings": 1,
+        "code": "1U 1O",
+        "c1": "ok",
+        "c2": "missing",
+        "c2_b_s": null,
+        "under_made": false
+      },
+      "grip_before_lift": {
+        "held": true,
+        "rise": 0.0146
+      },
+      "after_b_grip": {
+        "crossings": 1,
+        "code": "1U 1O",
+        "c1": "ok",
+        "c2": "missing",
+        "c2_b_s": null,
+        "under_made": false
+      },
+      "anchor_lift_move": {
+        "outcome": "reached",
+        "remaining_distance": 0.002759293340493499
+      },
+      "lift": {
+        "ok": true,
+        "strand_z": 0.04610000000000003,
+        "failure": null
+      },
+      "after_lift": {
+        "crossings": 4,
+        "code": "1U 2U 3U 1O 2O 3O 4O 4U",
+        "c1": "ok",
+        "c2": "missing",
+        "c2_b_s": null,
+        "under_made": false
+      },
+      "crossing_xy": [
+        0.43015,
+        -0.01273
+      ],
+      "rotate": {
+        "outcome": "reached",
+        "remaining_distance": 0.000283582395345253
+      },
+      "descend": {
+        "outcome": "reached",
+        "remaining_distance": 0.0024450712254799963
+      },
+      "pass": {
+        "outcome": "reached",
+        "remaining_distance": 0.0029167635947400404
+      },
+      "after_pass": {
+        "crossings": 2,
+        "code": "1U 2O 1O 2U",
+        "c1": "ok",
+        "c2": "ok",
+        "c2_b_s": 0.721,
+        "under_made": true
+      },
+      "after": {
+        "crossings": 6,
+        "code": "1O 2U 3U 3O 2O 4O 5O 6U 4U 1U 5U 6O",
+        "c1": "missing",
+        "c2": "ok",
+        "c2_b_s": 0.599,
+        "under_made": false
+      }
+    }
+  },
+  {
+    "experiment": "follow_through",
+    "graph": "draw_before_release",
+    "variant": {
+      "seed": 0,
+      "knot": "overhand",
+      "radius": 0.005,
+      "young_modulus": 100000.0,
+      "axial_stiffness": 300.0,
+      "mu_cable": 1.0,
+      "board_x": -0.07,
+      "board_y": 0.0,
+      "board_yaw": 0.0,
+      "pin_jitter": 0.0,
+      "splay": 0.05,
+      "drop": 0.14,
+      "side": 0.15,
+      "up": 0.16,
+      "fold": 0.07,
+      "lay_noise": 0.0,
+      "start_shape": "pre_thread",
+      "knot_size": 0.0
+    },
+    "task_success": false,
+    "sim_time_s": 52.55,
+    "error": "",
+    "determinant_with_diagram_closure": 1,
+    "crossings": 1,
+    "code": "1U 1O",
+    "c1": "missing",
+    "c2": "flipped",
+    "c2_b_s": 0.665,
+    "under_made": false,
+    "phase_report": {
+      "aim": [
+        {
+          "ok": true,
+          "failure": null,
+          "error": null
+        },
+        {
+          "ok": false,
+          "failure": "slipped",
+          "error": null
+        }
+      ],
+      "before": {
+        "crossings": 1,
+        "code": "1U 1O",
+        "c1": "ok",
+        "c2": "missing",
+        "c2_b_s": null,
+        "under_made": false
+      },
+      "anchor": {
+        "held": false,
+        "rise": 0.0012
+      },
+      "after_anchor": {
+        "crossings": 1,
+        "code": "1U 1O",
+        "c1": "ok",
+        "c2": "missing",
+        "c2_b_s": null,
+        "under_made": false
+      },
+      "after_aim": {
+        "crossings": 1,
+        "code": "1U 1O",
+        "c1": "ok",
+        "c2": "missing",
+        "c2_b_s": null,
+        "under_made": false
+      },
+      "grip_before_lift": {
+        "held": true,
+        "rise": 0.0162
+      },
+      "after_b_grip": {
+        "crossings": 2,
+        "code": "1U 1O 2U 2O",
+        "c1": "ok",
+        "c2": "missing",
+        "c2_b_s": null,
+        "under_made": false
+      },
+      "anchor_lift_move": {
+        "outcome": "reached",
+        "remaining_distance": 0.0027659229522509414
+      },
+      "lift": {
+        "ok": true,
+        "strand_z": 0.04752999999999996,
+        "failure": null
+      },
+      "after_lift": {
+        "crossings": 2,
+        "code": "1U 1O 2U 2O",
+        "c1": "ok",
+        "c2": "missing",
+        "c2_b_s": null,
+        "under_made": false
+      },
+      "crossing_xy": [
+        0.42991,
+        -0.01212
+      ],
+      "rotate": {
+        "outcome": "timeout",
+        "remaining_distance": 0.007097302276370544
+      },
+      "descend": {
+        "outcome": "timeout",
+        "remaining_distance": 0.011120437149667846
+      },
+      "pass": {
+        "outcome": "reached",
+        "remaining_distance": 0.0036529374693331173
+      },
+      "after_pass": {
+        "crossings": 6,
+        "code": "1U 1O 2O 3O 4U 5U 6U 2U 3U 6O 5O 4O",
+        "c1": "ok",
+        "c2": "missing",
+        "c2_b_s": null,
+        "under_made": false
+      },
+      "draw": {
+        "outcome": "reached",
+        "remaining_distance": 0.003690916486026235
+      },
+      "after_draw": {
+        "crossings": 5,
+        "code": "1U 1O 2O 3O 4U 5U 3U 2U 5O 4O",
+        "c1": "ok",
+        "c2": "missing",
+        "c2_b_s": null,
+        "under_made": false
+      },
+      "after": {
+        "crossings": 1,
+        "code": "1U 1O",
+        "c1": "missing",
+        "c2": "flipped",
+        "c2_b_s": 0.665,
+        "under_made": false
+      }
+    }
   }
 ]

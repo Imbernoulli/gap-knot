@@ -248,6 +248,14 @@ def diagnose(ep: dict, tcross: list[dict]) -> dict:
         step, node = born(tc)
         per.append({"id": tc["id"], "state": "OK" if ok else "FLIPPED", "born_step": step, "born_node": node})
     extra = [x for k, x in enumerate(final_x) if k not in used]
+    tightening = (r.get("variant") or {}).get("start_shape") == "loose_knot"
+    final = r.get("final") or {}
+    trefoil = final.get("code") in ("1U 2O 3U 1O 2U 3O", "1O 2U 3O 1U 2O 3U")
+    if tightening and trefoil:
+        # Tightening slides material through the crossings. Their original arc
+        # coordinates are not a valid test of whether the knot was preserved.
+        per = [{"id": tc["id"], "state": "OK"} for tc in tcross]
+        extra = []
     err_span = next((sp for sp in spans if sp.get("status") in ("error", "unfinished") and "." in sp["node"]), None)
     ge = graph_end(ep, spans)
     regress = [sp for sp in spans if sp.get("prefix_before") is not None and sp.get("prefix_after") is not None and sp["prefix_after"] < sp["prefix_before"] and "." in sp["node"]]
@@ -260,6 +268,13 @@ def diagnose(ep: dict, tcross: list[dict]) -> dict:
     elif ge["end"] and ge["end"]["status"] != "success" and ge["last_route"]:
         lr = ge["last_route"]
         cause = f"graph ended at '{ge['end']['node']}' after {lr['node'].split('.')[0]} routed '{lr['route']}'" + (f" ({lr['reason']})" if lr["reason"] else "")
+    elif tightening and trefoil:
+        if final.get("max_height", 0.0) > 0.05:
+            cause = "knot not returned to the bench"
+        elif not final.get("tied"):
+            cause = "knot not drawn tight enough"
+        else:
+            cause = "release and goal hold not completed"
     elif any(p["state"] != "OK" for p in per) or extra:
         cause = "wrong diagram"
     else:
@@ -328,8 +343,10 @@ def aggregate(diags: list[dict]) -> dict:
 
 def report(stats: dict, diags: list[dict], *, title: str = "Rehearsal report") -> str:
     L = [f"# {title}", ""]
+    code_length = len(stats.get("target_code", TARGET_CODE_STR).split())
+    crossing_count = len(stats["crossings"])
     L.append(f"**Success {stats['successes']}/{stats['episodes']} = {stats['success_rate']:.0%}** (Wilson 95% {stats['wilson95'][0]:.2f}–{stats['wilson95'][1]:.2f}); "
-             f"mean code prefix {stats['mean_prefix']:.1f}/16; mean target crossings right {stats['mean_cross_ok']:.1f}/8; "
+             f"mean code prefix {stats['mean_prefix']:.1f}/{code_length}; mean target crossings right {stats['mean_cross_ok']:.1f}/{crossing_count}; "
              f"rope within 20 mm of its target {100 * stats['mean_shape_near']:.0f}% of nodes; furthest top-level subgraph reached {stats['mean_depth']:.1f} on average; mean sim time of successes {stats['mean_time_success_s'] or float('nan'):.1f} s, of all {stats['mean_time_all_s'] or float('nan'):.1f} s.")
     L.append("")
     L.append("## Why episodes failed")
@@ -352,7 +369,7 @@ def report(stats: dict, diags: list[dict], *, title: str = "Rehearsal report") -
         v = d.get("variant") or {}
         L.append(f"### {d['id']}: {'SUCCESS' if d['success'] else 'FAIL'} — {d['cause']}")
         L.append(f"variant: young {v.get('young_modulus', 0):.3g} Pa, mu {v.get('mu_cable', 0):.2f}, board ({v.get('board_x', 0):+.3f}, {v.get('board_y', 0):+.3f}) yaw {v.get('board_yaw', 0):+.3f}, splay {v.get('splay', 0):.3f}, drop {v.get('drop', 0):.3f}, lay_noise {v.get('lay_noise', 0):.3f}")
-        L.append(f"final code `{d['final_code']}` (prefix {d['prefix']}/16, extra crossings {d['extra_crossings']}), sim {d['sim_time_s']} s, "
+        L.append(f"final code `{d['final_code']}` (prefix {d['prefix']}/{code_length}, extra crossings {d['extra_crossings']}), sim {d['sim_time_s']} s, "
                  f"{100 * (d.get('shape') or {}).get('near', 0):.0f}% of the rope within 20 mm of target, reached top-level subgraph #{d.get('depth')}")
         bad = [c for c in d["crossings"] if c["state"] != "OK"]
         if bad:
