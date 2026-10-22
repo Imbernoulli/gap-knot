@@ -211,7 +211,10 @@ def _register_measure() -> None:
     # coin_progress scores whichever knot the current variant ties (the name predates the overhand knot).
 
     def coin_progress(positions: np.ndarray) -> float:
-        return score(np.asarray(positions, dtype=np.float64))["progress"]
+        # 1.0 only when the knot counts as tied (for the overhand knot: either handedness, and drawn tight when the
+        # episode starts from a loose knot); otherwise the code matched so far, kept below 1.
+        sc = score(np.asarray(positions, dtype=np.float64))
+        return 1.0 if sc["tied"] else min(sc["progress"], 0.99)
 
     with contextlib.suppress(ValueError):
         register_atom(
