@@ -13,7 +13,8 @@ This is step 3 of the Howcast overhand-knot clip (`docs/img/video_storyboard.jpg
 ## Success and score
 
 - **Success**: the rope is still an overhand knot (3 crossings, trefoil, either handedness), and the rope between its first and last crossing is at most 75% of what it was at the start. This must hold for 1 s with the hands off, within 9000 control steps (150 s of scene time).
-  - `rope.state()["tied"]` reports exactly this.
+  - The runtime checks trefoil topology, the length fraction and every node at most 5 cm above the bench, continuously for 1 s. The graph explicitly releases and retreats before verification; height alone is a proxy, not a contact test.
+  - `rope.state()["tied"]` uses the same instantaneous geometric predicate in bench coordinates. RSS semantic handlers receive world coordinates, converted by `task.world_progress`.
   - The rope between the crossings is `max(s) - min(s)` over `rope.state()["crossings"]` (s_a, s_b).
 - **Second objective**: cycle time, the scene seconds to success.
 

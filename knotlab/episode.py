@@ -41,7 +41,7 @@ def run(graph: str, variant_json: str, out: str, *, max_steps: int = 6000, every
     def rope_score(detail: bool = False) -> dict:
         p = np.asarray(env["rope"].particle_q, dtype=np.float64) - origin
         sc = task.score(p)
-        row = {k: sc[k] for k in ("code", "crossings", "prefix", "progress", "tied")}
+        row = {k: sc[k] for k in ("code", "crossings", "prefix", "progress", "tied", "knot_length", "max_height")}
         if detail:  # each crossing: where along the rope its two strands are, and which is over
             row["x"] = [[round(c.s_i, 3), round(c.s_j, 3), int(c.i_over)] for c in sorted(diagram.crossings(p), key=lambda c: c.s_i)]
         return row
@@ -88,6 +88,7 @@ def run(graph: str, variant_json: str, out: str, *, max_steps: int = 6000, every
         error = traceback.format_exc()
         success, steps = False, int(getattr(env, "step_count", 0))
     final = rope_score(detail=True)
+    np.save(out_dir / "rope_final.npy", np.asarray(env["rope"].particle_q, dtype=np.float64))
     # Per node: the rope's progress when it started and when it ended.
     nodes = []
     for e in events:

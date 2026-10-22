@@ -1,0 +1,308 @@
+{
+  "version": 3,
+  "meta": {
+    "name": "tighten_adaptive_feedback",
+    "description": "Measure and retain the initial overhand length; retry settled, grasp-verified pulls with state-based tail selection, stroke, lift and workspace limits."
+  },
+  "nodes": {
+    "assess": {
+      "type": "subgraph",
+      "ref": "assess_sg"
+    },
+    "pull": {
+      "type": "subgraph",
+      "ref": "pull_sg"
+    },
+    "verify": {
+      "type": "subgraph",
+      "ref": "verify_sg"
+    },
+    "done": {
+      "type": "end",
+      "status": "success"
+    },
+    "abort": {
+      "type": "end",
+      "status": "failure",
+      "recovery": [
+        {
+          "tool": "robot.open_gripper",
+          "inputs": {
+            "arm_id": 0
+          }
+        },
+        {
+          "tool": "robot.open_gripper",
+          "inputs": {
+            "arm_id": 1
+          }
+        }
+      ]
+    }
+  },
+  "edges": [
+    [
+      "START",
+      "assess"
+    ]
+  ],
+  "conditional_edges": {
+    "pull": {
+      "router_field": "exit",
+      "mapping": {
+        "tight": "verify",
+        "pulled": "verify",
+        "lost": "verify",
+        "failed": "abort"
+      }
+    },
+    "verify": {
+      "router_field": "exit",
+      "mapping": {
+        "tight": "done",
+        "loose": "abort",
+        "failed": "abort",
+        "retry": "pull"
+      }
+    },
+    "assess": {
+      "router_field": "exit",
+      "mapping": {
+        "ready": "pull",
+        "lost": "abort",
+        "failed": "abort"
+      }
+    }
+  },
+  "subgraphs": {
+    "assess_sg": {
+      "skill": "generic",
+      "inputs": {},
+      "outputs": {
+        "start_in_knot": {
+          "$ref": "act.start_in_knot"
+        },
+        "cycle": {
+          "$ref": "act.cycle"
+        },
+        "next_distance": {
+          "$ref": "act.next_distance"
+        },
+        "gain": {
+          "$ref": "act.gain"
+        },
+        "used_steps": {
+          "$ref": "act.used_steps"
+        }
+      },
+      "nodes": {
+        "act": {
+          "type": "script",
+          "script": "scripts/tg_assess.py"
+        },
+        "ready": {
+          "type": "noop"
+        },
+        "lost": {
+          "type": "noop"
+        }
+      },
+      "edges": [
+        [
+          "START",
+          "act"
+        ],
+        [
+          "ready",
+          "END"
+        ],
+        [
+          "lost",
+          "END"
+        ]
+      ],
+      "conditional_edges": {
+        "act": {
+          "router_field": "route",
+          "mapping": {
+            "ready": "ready",
+            "lost": "lost"
+          }
+        }
+      },
+      "exit": {
+        "router_field": null,
+        "success_values": [
+          "ready",
+          "lost"
+        ]
+      },
+      "on_error": "failed"
+    },
+    "pull_sg": {
+      "skill": "generic",
+      "inputs": {
+        "start_in_knot": "float",
+        "cycle": "int",
+        "next_distance": "float",
+        "gain": "float",
+        "used_steps": "int"
+      },
+      "outputs": {
+        "cycle": {
+          "$ref": "act.cycle"
+        },
+        "next_distance": {
+          "$ref": "act.next_distance"
+        },
+        "gain": {
+          "$ref": "act.gain"
+        },
+        "used_steps": {
+          "$ref": "act.used_steps"
+        }
+      },
+      "nodes": {
+        "act": {
+          "type": "script",
+          "script": "scripts/tg_pull.py",
+          "inputs": {
+            "start_in_knot": {
+              "$ref": "in.start_in_knot"
+            },
+            "cycle": {
+              "$ref": "in.cycle"
+            },
+            "next_distance": {
+              "$ref": "in.next_distance"
+            },
+            "gain": {
+              "$ref": "in.gain"
+            },
+            "used_steps": {
+              "$ref": "in.used_steps"
+            }
+          }
+        },
+        "tight": {
+          "type": "noop"
+        },
+        "pulled": {
+          "type": "noop"
+        },
+        "lost": {
+          "type": "noop"
+        }
+      },
+      "edges": [
+        [
+          "START",
+          "act"
+        ],
+        [
+          "tight",
+          "END"
+        ],
+        [
+          "pulled",
+          "END"
+        ],
+        [
+          "lost",
+          "END"
+        ]
+      ],
+      "conditional_edges": {
+        "act": {
+          "router_field": "route",
+          "mapping": {
+            "tight": "tight",
+            "pulled": "pulled",
+            "lost": "lost"
+          }
+        }
+      },
+      "exit": {
+        "router_field": null,
+        "success_values": [
+          "tight",
+          "pulled",
+          "lost"
+        ]
+      },
+      "on_error": "failed"
+    },
+    "verify_sg": {
+      "skill": "generic",
+      "inputs": {
+        "cycle": "int",
+        "used_steps": "int"
+      },
+      "outputs": {
+        "used_steps": {
+          "$ref": "act.used_steps"
+        }
+      },
+      "nodes": {
+        "act": {
+          "type": "script",
+          "script": "scripts/tg_verify.py",
+          "inputs": {
+            "cycle": {
+              "$ref": "in.cycle"
+            },
+            "used_steps": {
+              "$ref": "in.used_steps"
+            }
+          }
+        },
+        "tight": {
+          "type": "noop"
+        },
+        "loose": {
+          "type": "noop"
+        },
+        "retry": {
+          "type": "noop"
+        }
+      },
+      "edges": [
+        [
+          "START",
+          "act"
+        ],
+        [
+          "tight",
+          "END"
+        ],
+        [
+          "loose",
+          "END"
+        ],
+        [
+          "retry",
+          "END"
+        ]
+      ],
+      "conditional_edges": {
+        "act": {
+          "router_field": "route",
+          "mapping": {
+            "tight": "tight",
+            "loose": "loose",
+            "retry": "retry"
+          }
+        }
+      },
+      "exit": {
+        "router_field": null,
+        "success_values": [
+          "tight",
+          "loose",
+          "retry"
+        ]
+      },
+      "on_error": "failed"
+    }
+  }
+}

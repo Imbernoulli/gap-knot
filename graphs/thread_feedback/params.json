@@ -1,0 +1,11 @@
+{
+ "mode": "tilt_pass",
+ "short": 0.025,
+ "lift": 0.05,
+ "helper_ds": 0.02,
+ "grasp_back": 0.04,
+ "tilt": 75,
+ "wrist": "flip",
+ "z": 0.028,
+ "pass": 0.02
+}

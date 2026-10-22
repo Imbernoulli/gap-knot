@@ -16,7 +16,7 @@ import numpy as np
 
 from knotlab import diagram, task
 
-BENCH_ORIGIN = np.array([0.6, 0.0, 0.75])
+BENCH_ORIGIN = task.BENCH_ORIGIN
 
 
 def _world(p) -> list[float]:
@@ -43,10 +43,12 @@ class RopeTools:
             "arc": s.round(5).tolist(),
             "length": float(s[-1]),
             "code": sc["code"],
-            "target_code": diagram.code_str(task.TARGET_CODE),
+            "target_code": diagram.code_str(task.target_code()),
             "progress": sc["progress"],
             "prefix": sc["prefix"],
             "tied": sc["tied"],
+            "knot_length": sc["knot_length"],
+            "max_height": sc["max_height"],
             "crossings": [
                 {
                     "s_a": c.s_i,
@@ -70,7 +72,7 @@ class RopeTools:
             "pin_height": task.PIN_HEIGHT,
             "target_nodes": [_world(x) for x in tgt],
             "target_arc": diagram.arc_length(tgt).round(5).tolist(),
-            "target_code": diagram.code_str(task.TARGET_CODE),
+            "target_code": diagram.code_str(task.target_code()),
             "rope_radius": float(task.CURRENT["variant"].radius),
             "board_centre": _world(lay["board_centre"]),
         }

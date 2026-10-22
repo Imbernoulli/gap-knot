@@ -61,7 +61,7 @@ def run_local(graph: Path, out: Path, vs: list, *, slots: list[str], max_steps: 
 
 
 def run_daytona_many(specs: list[tuple[Path, Path]], vs: list, *, max_steps: int = MAX_STEPS, timeout_s: int = 5400,
-                     pool=None) -> list[dict]:
+                     pool=None, workers: int = 6) -> list[dict]:
     """Several graphs, each on the same instances, as ONE batch on the Daytona fleet (fleet.pool.Pool).
 
     ``specs`` is [(graph_dir, out_dir)]; episode k of graph g lands in out_dir/ep<seed>. One episode per
@@ -95,8 +95,10 @@ def run_daytona_many(specs: list[tuple[Path, Path]], vs: list, *, max_steps: int
             where[jid] = (out, rid)
     try:
         fleet_dir = specs[0][1].parent / f"_fleet_{int(time.time())}"
-        # Exactly as many sandboxes as episodes (up to the cap), torn down after: nothing idles between batches.
-        res = pool.run(jobs, results_dir=str(fleet_dir), size=min(len(jobs), 48), keep=False) if jobs else []
+        # Bound concurrent sandboxes independently of the number of graph/instance pairs.
+        if workers < 1:
+            raise ValueError("workers must be positive")
+        res = pool.run(jobs, results_dir=str(fleet_dir), size=min(len(jobs), workers), keep=False) if jobs else []
     finally:
         if own:
             pool.down()

@@ -89,14 +89,15 @@ def main() -> None:
     try:
         from harness.analyze import diagnose, load_episode, target_crossings
 
-        spans = diagnose(load_episode(ep), target_crossings())["spans"]
+        spans = diagnose(load_episode(ep), target_crossings(variant=r["variant"]))["spans"]
     except Exception:
         spans = []
     # The end beside the target.
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     last = ropes[-1].astype(np.float64)
-    sc = task.score(last - W)
-    frame(axes[0], last, hands[-1] if hands is not None else None, lay, f"end (t={r['sim_time_s']} s): code {sc['code']}  prefix {sc['prefix']}/16")
+    sc = task.score(last - W, knot=v.knot)
+    code_length = len(task.target_code(v.knot))
+    frame(axes[0], last, hands[-1] if hands is not None else None, lay, f"end (t={r['sim_time_s']} s): code {sc['code']}  prefix {sc['prefix']}/{code_length}")
     frame(axes[1], np.asarray(lay["target"]) + W, None, lay, "target")
     plt.tight_layout()
     plt.savefig(ep / "final.png", dpi=110)
@@ -109,7 +110,7 @@ def main() -> None:
     for ax, k in zip(np.ravel(axes), idx):
         step = int(hands[k][0]) if hands is not None else k * EVERY
         frame(ax, ropes[k].astype(np.float64), hands[k] if hands is not None else None, lay,
-              f"t={step / 60:.1f}s {node_at(spans, step)}  prefix {task.score(ropes[k].astype(np.float64) - W)['prefix']}")
+              f"t={step / 60:.1f}s {node_at(spans, step)}  prefix {task.score(ropes[k].astype(np.float64) - W, knot=v.knot)['prefix']}/{code_length}")
     for ax in np.ravel(axes)[len(idx):]:
         ax.axis("off")
     plt.tight_layout()

@@ -62,6 +62,7 @@ class Variant:
 
 
 NOMINAL = Variant()
+BENCH_ORIGIN = np.array([0.6, 0.0, 0.75])
 BOARD_THICK = 0.001  # the foam board, drawn only: SuperDex's rope rests on the bench, not on a slab [m]
 PIN_RADIUS, PIN_HEIGHT = 0.0025, 0.050  # the video's pins stand ~5 cord diameters; at 30 mm a cord carried at 35 mm slid over one
 
@@ -160,7 +161,7 @@ def target_code(knot: str | None = None) -> list:
 
 
 def score(points: np.ndarray, radius: float = 0.005, knot: str | None = None) -> dict:
-    """How far the rope is from the tied knot: its code against the target knot's, and the knot's size."""
+    """Score BENCH-frame rope nodes (height measured above the work surface)."""
     tc = target_code(knot)
     code = diagram.gauss_code(points)
     n = diagram.prefix_match(code, tc)
@@ -181,6 +182,7 @@ def score(points: np.ndarray, radius: float = 0.005, knot: str | None = None) ->
         "prefix": n,
         "progress": n / len(tc),
         "knot_length": diagram_knot_length(points),
+        "max_height": float(np.asarray(points)[:, 2].max()),
         "tied": bool(exact),
         "alternating": diagram.is_alternating(code),
         "knot_extent": float(np.ptp(xy, axis=0).max()) if len(xy) > 1 else 0.0,
@@ -208,6 +210,12 @@ strands up to 28-42 mm; one the hands still hold is 72-126 mm up. (A first guess
 _REGISTERED: set[str] = set()
 
 
+def world_progress(positions: np.ndarray) -> float:
+    """RSS semantic handlers receive WORLD-frame rod nodes, unlike ``score``."""
+    sc = score(np.asarray(positions, dtype=np.float64) - BENCH_ORIGIN)
+    return 1.0 if sc["tied"] else min(sc["progress"], 0.99)
+
+
 def _register_measure() -> None:
     from robosimstudio.assetlib.semantics.atoms import ArgSpec, AtomSpec, register_atom
     from robosimstudio.assetlib.semantics.handlers import handler
@@ -219,8 +227,7 @@ def _register_measure() -> None:
     def coin_progress(positions: np.ndarray) -> float:
         # 1.0 only when the knot counts as tied (for the overhand knot: either handedness, and drawn tight when the
         # episode starts from a loose knot); otherwise the code matched so far, kept below 1.
-        sc = score(np.asarray(positions, dtype=np.float64))
-        return 1.0 if sc["tied"] else min(sc["progress"], 0.99)
+        return world_progress(positions)
 
     with contextlib.suppress(ValueError):
         register_atom(

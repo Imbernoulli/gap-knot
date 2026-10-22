@@ -23,7 +23,8 @@ for g in graphs:
         try:
             r = json.loads((ep / "result.json").read_text())
             v = task.Variant(**r["variant"]); lay = task.layout(v)
-            pts = np.load(ep / "rope_frames.npy")[-1].astype(np.float64) - W
+            final_path = ep / "rope_final.npy"
+            pts = (np.load(final_path) if final_path.exists() else np.load(ep / "rope_frames.npy")[-1]).astype(np.float64) - W
             sc = thread_lab.segment_score(pts, lay["target"])
             rows.append({"ep": ep.name, **sc, "t": r["sim_time_s"], "err": r["error"][-200:] if r["error"] else ""})
         except Exception as e:
