@@ -86,7 +86,11 @@ def _layout_overhand(v: Variant) -> dict:
     at = (0.0, 0.0)
     start = overhand.start(v.radius, at)
     tgt = overhand.target(v.radius, at)
-    if v.lay_noise > 0:
+    if v.start_shape == "pre_thread":  # the under-crossing segment rehearsed alone (knotlab.thread_lab)
+        from knotlab import thread_lab
+
+        start = thread_lab.pre_thread(tgt, v.radius)
+    if v.lay_noise > 0 and v.start_shape != "pre_thread":
         s = diagram.arc_length(start)
         wiggle = v.lay_noise * np.sin(2 * math.pi * s / rng.uniform(0.2, 0.4) + rng.uniform(0, 2 * math.pi))
         tangent = np.gradient(start[:, :2], axis=0)
