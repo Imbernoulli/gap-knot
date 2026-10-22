@@ -203,6 +203,17 @@ the library yet: 0 of 71 probe episodes met that criterion; 4 ended wrapped with
 
 ## Known failure modes
 
+## Rehearsed action caps
+
+When a bounded action is first made reliable by a manual or exploratory
+rehearsal, record it with `knotlab.cap.CapRecorder` (or extract the robot
+calls from one trace with `knotlab.cap.from_trace`).  A cap is valid only after
+`knotlab.cap.replay` succeeds on a fresh straight-rope episode.  Caps contain
+ordinary `robot.*` commands and compact state guards; they must not restore
+particles, pin a node, or reuse a pre-existing knot.  A passing cap documents a
+local action such as one lift or thread and does not satisfy the full knot
+grader by itself.
+
 - **Pinching a strand that lies on another** (near a crossing): it sits ~9 mm
   up; the tips are sent 3.6 mm under its axis, but the hold is weaker. Pinch
   points 2–3 cm from crossings.
