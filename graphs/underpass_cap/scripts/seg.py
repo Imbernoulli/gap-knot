@@ -100,15 +100,35 @@ def run(ctx):
     st,row=state("under_pass_closed",tip_past=float((np.asarray(ctx.tool("rope.point",s=tip_s)["position"][:2])-x)@u),under_outcome=report["under_pass"])
     before_n=report["stages"][-2]["crossings"]
     report["under_pass"]["crossing_increase"]=row["crossings"]-before_n
-    # X3: continue the same held material point over the far A strand. We use
-    # measured c3 position/tangent and a side exit, then record lag before release.
-    x3,_a3_u=_xy_heading(ctx,float(c3["s_a"]),ref)
-    u3=b3_ref.copy()
-    exit_xy=x3+float(p.get("x3_out",.055))*u3
-    path=[pass_xy.tolist(),x3.tolist(),exit_xy.tolist()]
-    report["x3_geometry"]={"x3":x3.tolist(),"u3":u3.tolist(),"exit":exit_xy.tolist()}
-    report["x3_carry"]=skills.carry(ctx,1,path,rot,height=float(p.get("tip_height",.028)),speed=.12,s=tip_s)
-    state("x3_closed",tip_past_x3=float((np.asarray(ctx.tool("rope.point",s=tip_s)["position"][:2])-x3)@u3))
+    # A) after the under-pass, clear the working gripper vertically and
+    # sideways before any far-side action.  This tests whether X2 survives
+    # removal of the tool's lateral load while the helper remains up.
+    mode=str(p.get("mode","B"))
+    tip_tcp,_=skills.ee(ctx,1)
+    if tip_tcp is not None:
+        retreat_xy=np.asarray(tip_tcp[:2],float)
+        report["tip_vertical_retreat"]=_go(ctx,1,retreat_xy,.10,rot,steps=320)
+        side_xy=retreat_xy+np.array([0.025,-0.025])
+        report["tip_side_clear"]=_go(ctx,1,side_xy,.10,rot,steps=260)
+    state("under_retreat")
+    if mode == "A":
+        report["x3_action"]={"skipped":True,"reason":"hold c2 after under-pass; no broad X3 motion"}
+    else:
+        # B) one short, feedback-retargeted far-side move.  Re-capture after
+        # the wrist/vertical retreat, then use the latest material point and
+        # tangent for the target.  A 20 mm exit replaces the unstable 55 mm
+        # sweep; lag is a hard diagnostic gate, not a success claim.
+        tip_cap=tip_feedback.capture(ctx,1,s=tip_s)
+        x3,_a3_u=_xy_heading(ctx,float(c3["s_a"]),ref)
+        u3=b3_ref.copy()
+        geom=tip_feedback.point_state(ctx,s=tip_s,inset=.02)
+        live_u=np.asarray(geom["tangent"][:2],float); live_u/=max(np.linalg.norm(live_u),1e-9)
+        if float(live_u@u3)<0: live_u=-live_u
+        exit_xy=x3+min(float(p.get("x3_out",.02)),.02)*live_u
+        report["x3_geometry"]={"x3":x3.tolist(),"u3_target":u3.tolist(),"live_tip_tangent":live_u.tolist(),"exit":exit_xy.tolist()}
+        report["x3_retarget"]=tip_feedback.move_tip(ctx,arm_id=1,s=tip_s,target_xy=exit_xy,capture=tip_cap,height=.035,speed=.10,inset=.02,verify=True)
+        report["x3_retarget"]["lag_gate"]=(float(report["x3_retarget"].get("drift",{}).get("xy",1.0))<=.025)
+        state("x3_short_feedback",tip_past_x3=float((np.asarray(ctx.tool("rope.point",s=tip_s)["position"][:2])-x3)@u3))
     # Release tip in place, then move sideways/up before lowering helper. This
     # separates release slip from helper-anchor drift.
     tcp,_=skills.ee(ctx,1); rel={}

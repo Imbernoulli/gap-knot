@@ -1,0 +1,71 @@
+{
+  "purpose": "isolated helper-arch under-pass cap probe",
+  "start_shape": "pre_thread",
+  "rows": [
+    {
+      "episode": "ep000000",
+      "seed": 0,
+      "young_modulus": 100000.0,
+      "success": false,
+      "sim_time_s": 44.52,
+      "wall_s": 141.0,
+      "final": {
+        "code": "1U 1O 2O 2U",
+        "crossings": 2,
+        "prefix": 1,
+        "progress": 0.16666666666666666,
+        "tied": false,
+        "knot_length": 0.4389532799969053,
+        "max_height": 0.2681846618652344,
+        "x": [
+          [
+            0.089,
+            0.316,
+            0
+          ],
+          [
+            0.477,
+            0.523,
+            1
+          ]
+        ]
+      },
+      "strict_scope": "prepared-loop diagnostic, not from straight rope"
+    },
+    {
+      "episode": "ep000001",
+      "seed": 1,
+      "young_modulus": 150000.0,
+      "success": false,
+      "sim_time_s": 44.75,
+      "wall_s": 124.6,
+      "final": {
+        "code": "1U 2O 1O 2U",
+        "crossings": 2,
+        "prefix": 2,
+        "progress": 0.3333333333333333,
+        "tied": false,
+        "knot_length": 0.3916340433522638,
+        "max_height": 0.23270189762115479,
+        "x": [
+          [
+            0.026,
+            0.316,
+            0
+          ],
+          [
+            0.075,
+            0.414,
+            1
+          ]
+        ]
+      },
+      "strict_scope": "prepared-loop diagnostic, not from straight rope"
+    }
+  ],
+  "interpretation": [
+    "E=1e5 reached under_made during the episode but anchor drift later destroyed the crossing.",
+    "E=1.5e5 did not improve the under-pass and ended with two crossings.",
+    "Neither run is a complete knot or a straight-rope success."
+  ]
+}
