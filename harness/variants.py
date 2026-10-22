@@ -29,10 +29,11 @@ RANGES = {
 
 
 RANGES_OVERHAND = {
-    # Real2Sim of the Howcast clip (video/overhand/REAL2SIM.md): E = 2e4 Pa matched the loose knot's settled
-    # shape (silhouette IoU 0.71 vs 0.35 at 2e6); the clip cannot identify friction, so mu_cable keeps the range
-    # the double coin's board set (a grip needs it: SuperDex has one friction for strands, pads and bench).
-    "young_modulus": ("log", 1.0e4, 4.0e4),
+    # The Real2Sim of the Howcast clip (video/overhand/REAL2SIM.md) matched the loose knot's settled shape best at
+    # E = 2e4 Pa, but at that stiffness the YAM's pads cannot hold the SuperDex rod (a 5 cm carry moved the pinched
+    # point 4 mm; at 1e5 it moved 49 mm: runs/probe/E_0, E_1). The task keeps the stiffness range grasping works at,
+    # RoboSimStudio's own knot example's 1e5 in the middle.
+    "young_modulus": ("log", 0.5e5, 2.0e5),
     "mu_cable": ("lin", 0.6, 1.4),
     "axial_stiffness": ("log", 200.0, 450.0),
     "board_x": ("lin", -0.08, -0.06),  # the cord's line, bench x (world 0.52-0.54: the big knot lies toward the robot of it)
@@ -68,8 +69,8 @@ def test(n: int) -> list[Variant]:
 def nominal(knot: str | None = None) -> Variant:
     knot = knot or KNOT
     if knot == "overhand_tighten":
-        return Variant(knot="overhand", board_x=-0.07, young_modulus=2.0e4, start_shape="loose_knot", knot_size=0.15)
-    return Variant(knot=knot, board_x=-0.07, young_modulus=2.0e4) if knot == "overhand" else Variant()
+        return Variant(knot="overhand", board_x=-0.07, start_shape="loose_knot", knot_size=0.15)
+    return Variant(knot=knot, board_x=-0.07) if knot == "overhand" else Variant()
 
 
 if __name__ == "__main__":
